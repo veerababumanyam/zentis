@@ -14,6 +14,34 @@ const getPersonalizationInstructions = (aiSettings: AiPersonalizationSettings): 
 export const runSmartSummaryAgent = async (patient: Patient, ai: GoogleGenAI, aiSettings: AiPersonalizationSettings): Promise<SmartSummaryMessage> => {
     const personalization = getPersonalizationInstructions(aiSettings);
 
+    // --- NEW USER CHECK: If patient has no reports and no meaningful medical history, return a friendly welcome ---
+    const hasReports = patient.reports && patient.reports.length > 0;
+    const hasMedicalHistory = patient.medicalHistory && patient.medicalHistory.length > 0;
+    const hasMedications = patient.currentStatus?.medications && patient.currentStatus.medications.length > 0;
+    const hasVitals = patient.currentStatus?.vitals && patient.currentStatus.vitals.trim() !== '' && patient.currentStatus.vitals !== 'BP 120/80';
+
+    if (!hasReports && !hasMedicalHistory && !hasMedications && !hasVitals) {
+        return {
+            id: Date.now(),
+            sender: 'ai',
+            type: 'smart_summary',
+            title: `Clinical Summary: ${patient.name}`,
+            highlights: [
+                { icon: 'vitals', text: `Wellness check for a ${patient.age}-year-old ${patient.gender?.toLowerCase() || ''}.`.trim() }
+            ],
+            tables: [
+                {
+                    title: 'Current Vitals & Status',
+                    items: [
+                        { metric: 'Condition', value: patient.currentStatus?.condition || 'Healthy' },
+                        { metric: 'Records', value: 'No documents uploaded yet' }
+                    ]
+                }
+            ],
+            narrativeSummary: `Welcome, ${patient.name}. No health records have been uploaded yet. You can start by uploading medical documents (lab results, imaging reports, prescriptions) for a personalized clinical summary. In the meantime, feel free to ask any health or medical questions — I'm here to help as your personal health assistant.`
+        };
+    }
+
     const latestEcho = patient.reports.filter(r => r.type === 'Echo').sort((a,b) => b.date.localeCompare(a.date))[0];
     const latestLab = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a,b) => b.date.localeCompare(a.date))[0];
 

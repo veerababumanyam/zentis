@@ -112,11 +112,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     useEffect(() => {
         const loadPatients = async () => {
-            if (!user) {
+            if (!user || !userProfile) {
                 dispatch({ type: 'SET_PATIENTS', payload: [] });
                 return;
             }
 
+            dispatch({ type: 'SET_APP_LOADING', payload: true });
             try {
                 let patients = await fetchPatients(user.uid);
 
@@ -161,7 +162,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         };
         loadPatients();
-    }, [user, showToast]);
+    }, [user, userProfile, showToast]);
 
     useEffect(() => {
         if (userProfile?.geminiApiKey && userProfile.geminiApiKey !== aiSettings.apiKey) {
@@ -219,16 +220,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     }
 
                     briefing.id = Date.now();
+                    const hasRecords = selectedPatient.reports && selectedPatient.reports.length > 0;
                     const welcomeMsg: TextMessage = {
                         id: Date.now() - 100,
                         sender: 'ai',
                         type: 'text',
-                        text: `**Welcome back, ${selectedPatient.name}.**\nI've analyzed your medical records. Here is your current health summary.`
+                        text: hasRecords
+                            ? `**Welcome back, ${selectedPatient.name}.**\nI've analyzed your medical records. Here is your current health summary.`
+                            : `**Welcome, ${selectedPatient.name}!** 👋\nI'm your **Personal Health Assistant**. You can ask me any medical or health questions, and I'll do my best to help.\n\n📎 **Tip:** Upload health documents (lab results, imaging, prescriptions) using the sidebar for personalized analysis and insights.`
                     }
                     dispatch({ type: 'SET_MESSAGES', payload: { patientId, messages: [welcomeMsg, briefing] } });
                 } catch (error: any) {
                     console.error("Failed to get briefing:", error);
-                    const errorMsg: TextMessage = { id: Date.now(), sender: 'ai', type: 'text', text: `Welcome. I'm ready to assist you with your health records.` };
+                    const errorMsg: TextMessage = { id: Date.now(), sender: 'ai', type: 'text', text: `**Welcome, ${selectedPatient.name}!** 👋\nI'm your **Personal Health Assistant**. Ask me any health or medical question, or upload documents for personalized analysis.` };
                     dispatch({ type: 'SET_MESSAGES', payload: { patientId, messages: [errorMsg] } });
                 } finally {
                     dispatch({ type: 'SET_CHAT_LOADING', payload: false });

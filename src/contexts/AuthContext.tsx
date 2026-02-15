@@ -76,27 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const user = result.user;
 
             // Check if user profile exists
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (!userDocSnap.exists()) {
-                // Auto-create profile for new users
-                const newProfile: UserProfile = {
-                    uid: user.uid,
-                    email: user.email || '',
-                    displayName: user.displayName || 'User',
-                    photoURL: user.photoURL || '',
-                    role: 'doctor', // Default role as requested
-                    createdAt: Date.now(),
-                    geminiApiKey: ''
-                };
-
-                await setDoc(userDocRef, newProfile);
-                setUserProfile(newProfile);
-            } else {
-                // Existing user - fetch profile
-                await fetchUserProfile(user.uid);
-            }
+            // We explicitly do NOT auto-create the profile here anymore.
+            // If the profile doesn't exist, userProfile will remain null,
+            // triggering the OnboardingPage to show up.
+            await fetchUserProfile(user.uid);
 
         } catch (error: any) {
             console.error("Error signing in with Google:", error);

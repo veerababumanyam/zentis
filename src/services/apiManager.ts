@@ -63,33 +63,8 @@ export const getPreVisitBriefing = (patient: Patient, aiSettings: AiPersonalizat
 export const getDailyHuddle = (patients: Patient[], aiSettings: AiPersonalizationSettings): Promise<DailyHuddle> =>
   handleRateLimiting(() => geminiService.getDailyHuddle(patients, aiSettings));
 
-export const getAiResponse = async (query: string, patient: Patient, aiSettings: AiPersonalizationSettings): Promise<Message> => {
-  return handleRateLimiting(async () => {
-    // Construct the context-aware prompt on the client or let backend handle it.
-    // Ideally, we pass the query and let the backend agent handle the context.
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Patient-Context': btoa(JSON.stringify(patient)) // Pass context
-      },
-      body: JSON.stringify({ prompt: query })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend API Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    // Transform backend response to Message type needed by frontend
-    return {
-      id: Date.now(),
-      sender: 'ai',
-      type: 'text',
-      text: data.text
-    };
-  });
-};
+export const getAiResponse = (query: string, patient: Patient, aiSettings: AiPersonalizationSettings): Promise<Message> =>
+  handleRateLimiting(() => geminiService.getAiResponse(query, patient, aiSettings));
 
 export const runMultiModalAnalysisAgent = (prompt: string, files: UploadableFile[], patient: Patient, aiSettings: AiPersonalizationSettings): Promise<Message> =>
   handleRateLimiting(() => geminiService.runMultiModalAnalysisAgent(prompt, files, patient, aiSettings));

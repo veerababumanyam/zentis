@@ -74,13 +74,65 @@ export const agentRouter = async (query: string, patient: Patient, aiSettings: A
         return await runMultiSpecialistReviewAgent(patient, ai);
     }
 
-    try {
-        // Use the new @google/genai SDK syntax consistently
-        const prompt = `System: You are a helpful medical assistant. Context: Patient ${patient.name}, ${patient.age}y/o.\nUser: ${query}`;
+    // Check for report-lookup queries (only useful if patient has reports)
+    if (reportQueryRegex.test(query) && patient.reports && patient.reports.length > 0) {
+        try {
+            return await agents.runReportDisplayAgent(patient, query, ai);
+        } catch (e) {
+            console.warn('[AgentRouter] Report display agent failed, falling through to general:', e);
+        }
+    }
 
+    // --- Classify the query domain for better routing ---
+    let specialty = 'General';
+    try {
+        specialty = await determineSpecialty(query, ai);
+        console.log(`[AgentRouter] Classified query as: ${specialty}`);
+    } catch (e) {
+        console.warn('[AgentRouter] Classification failed, using General');
+    }
+
+    // --- Build a context-aware prompt ---
+    const hasReports = patient.reports && patient.reports.length > 0;
+    const hasMedHistory = patient.medicalHistory && patient.medicalHistory.length > 0;
+    const hasMedications = patient.currentStatus?.medications && patient.currentStatus.medications.length > 0;
+
+    let patientContext = `Patient: ${patient.name}, ${patient.age}y/o ${patient.gender || ''}.\n`;
+    patientContext += `Current Status: ${patient.currentStatus?.condition || 'Not specified'}.\n`;
+
+    if (patient.currentStatus?.vitals) {
+        patientContext += `Vitals: ${patient.currentStatus.vitals}.\n`;
+    }
+    if (hasMedications) {
+        patientContext += `Current Medications: ${patient.currentStatus.medications.join(', ')}.\n`;
+    }
+    if (hasMedHistory) {
+        patientContext += `Medical History: ${patient.medicalHistory.map(h => h.description).join('; ')}.\n`;
+    }
+    if (hasReports) {
+        const recentReports = patient.reports.slice(-3).map(r => `${r.type} (${r.date}): ${r.title || 'Untitled'}`).join('; ');
+        patientContext += `Recent Reports: ${recentReports}.\n`;
+    }
+
+    const systemPrompt = `You are a knowledgeable, empathetic medical health assistant powered by AI. Your role is to help users understand health topics, answer medical questions, and provide evidence-based health information.
+
+**Guidelines:**
+- Provide accurate, helpful medical information based on current clinical knowledge.
+- When the user has health records available, reference their specific data in your answers.
+- When NO health records are available, act as a general medical knowledge assistant — answer questions about symptoms, conditions, medications, lifestyle, prevention, etc.
+- Always recommend consulting a healthcare professional for diagnosis and treatment decisions.
+- Be clear about the limitations of AI-based medical advice.
+- Use plain language while being medically accurate.
+- Detected medical specialty for this query: ${specialty}.
+
+**Patient Context:**
+${patientContext}
+${!hasReports ? '\nNote: This patient has not uploaded any health documents yet. Answer based on general medical knowledge and the basic profile above.\n' : ''}`;
+
+    try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
-            contents: prompt
+            model: 'gemini-2.5-flash',
+            contents: `${systemPrompt}\n\nUser Question: ${query}`
         });
 
         return {

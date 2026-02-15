@@ -46,6 +46,10 @@ export const FeedbackModal: React.FC = () => {
         if (isPerformanceModalOpen) {
             setApiKeyInput(aiSettings.apiKey || '');
             setKeyTestResult(null);
+            // Default to settings if no key
+            if (!aiSettings.apiKey) {
+                setActiveTab('personalization');
+            }
         }
     }, [isPerformanceModalOpen, aiSettings.apiKey]);
 
@@ -169,7 +173,7 @@ export const FeedbackModal: React.FC = () => {
                             Performance
                         </button>
                         <button onClick={() => setActiveTab('personalization')} className={`px-3 py-2 text-sm font-semibold ${activeTab === 'personalization' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                            Personalization
+                            Settings
                         </button>
                         <button onClick={() => setActiveTab('data')} className={`px-3 py-2 text-sm font-semibold ${activeTab === 'data' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
                             Data Management
@@ -218,6 +222,90 @@ export const FeedbackModal: React.FC = () => {
                     )}
                     {activeTab === 'personalization' && (
                         <div className="space-y-6">
+                            {/* API Key Management */}
+                            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 space-y-4">
+                                <div>
+                                    <h4 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+                                        <span className="mr-2">🔑</span> Gemini API Key
+                                    </h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Required for all AI-powered features. Your key is stored securely in your account and never shared.
+                                    </p>
+                                </div>
+
+                                {aiSettings.apiKey && (
+                                    <div className="flex items-center space-x-2 text-sm">
+                                        <span className="text-green-600 dark:text-green-400 font-semibold">✓ Active</span>
+                                        <span className="text-gray-400 font-mono">{maskedKey}</span>
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <input
+                                            type={showApiKey ? 'text' : 'password'}
+                                            value={apiKeyInput}
+                                            onChange={(e) => { setApiKeyInput(e.target.value); setKeyTestResult(null); }}
+                                            placeholder="Enter your Gemini API Key..."
+                                            className={`w-full px-3 py-2 pr-20 text-sm rounded-lg border bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 ${keyTestResult === 'success' ? 'border-green-400 focus:ring-green-400' :
+                                                keyTestResult === 'error' ? 'border-red-400 focus:ring-red-400' :
+                                                    'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                                                }`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowApiKey(!showApiKey)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1"
+                                        >
+                                            {showApiKey ? 'Hide' : 'Show'}
+                                        </button>
+                                    </div>
+
+                                    {keyTestResult === 'success' && (
+                                        <p className="text-xs text-green-600 dark:text-green-400">✓ Key verified successfully.</p>
+                                    )}
+                                    {keyTestResult === 'error' && (
+                                        <p className="text-xs text-red-600 dark:text-red-400">✗ Key validation failed. Please check your key.</p>
+                                    )}
+
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={handleTestApiKey}
+                                            disabled={isTestingKey || !apiKeyInput.trim()}
+                                            className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isTestingKey ? 'Testing...' : 'Test Key'}
+                                        </button>
+                                        <button
+                                            onClick={handleSaveApiKey}
+                                            disabled={isSavingKey || !apiKeyInput.trim()}
+                                            className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isSavingKey ? 'Saving...' : 'Save Key'}
+                                        </button>
+                                        {aiSettings.apiKey && (
+                                            <button
+                                                onClick={handleRemoveApiKey}
+                                                className="px-3 py-1.5 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    <a
+                                        href="https://aistudio.google.com/app/apikey"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                        → Get a free API key from Google AI Studio
+                                    </a>
+                                </div>
+                            </div>
+
                             <div>
                                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">AI Response Style</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Adjust how the AI communicates to better fit your preferences.</p>
@@ -255,89 +343,6 @@ export const FeedbackModal: React.FC = () => {
                                             Switch to {userProfile?.role === 'doctor' ? 'Patient' : 'Doctor'}
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                            {/* API Key Management */}
-                            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 space-y-4">
-                                <div>
-                                    <h4 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
-                                        <span className="mr-2">\ud83d\udd11</span> Gemini API Key
-                                    </h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Required for all AI-powered features. Your key is stored securely in your account and never shared.
-                                    </p>
-                                </div>
-
-                                {aiSettings.apiKey && (
-                                    <div className="flex items-center space-x-2 text-sm">
-                                        <span className="text-green-600 dark:text-green-400 font-semibold">\u2713 Active</span>
-                                        <span className="text-gray-400 font-mono">{maskedKey}</span>
-                                    </div>
-                                )}
-
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <input
-                                            type={showApiKey ? 'text' : 'password'}
-                                            value={apiKeyInput}
-                                            onChange={(e) => { setApiKeyInput(e.target.value); setKeyTestResult(null); }}
-                                            placeholder="Enter your Gemini API Key..."
-                                            className={`w-full px-3 py-2 pr-20 text-sm rounded-lg border bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 ${keyTestResult === 'success' ? 'border-green-400 focus:ring-green-400' :
-                                                keyTestResult === 'error' ? 'border-red-400 focus:ring-red-400' :
-                                                    'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
-                                                }`}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowApiKey(!showApiKey)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1"
-                                        >
-                                            {showApiKey ? 'Hide' : 'Show'}
-                                        </button>
-                                    </div>
-
-                                    {keyTestResult === 'success' && (
-                                        <p className="text-xs text-green-600 dark:text-green-400">\u2713 Key verified successfully.</p>
-                                    )}
-                                    {keyTestResult === 'error' && (
-                                        <p className="text-xs text-red-600 dark:text-red-400">\u2717 Key validation failed. Please check your key.</p>
-                                    )}
-
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={handleTestApiKey}
-                                            disabled={isTestingKey || !apiKeyInput.trim()}
-                                            className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            {isTestingKey ? 'Testing...' : 'Test Key'}
-                                        </button>
-                                        <button
-                                            onClick={handleSaveApiKey}
-                                            disabled={isSavingKey || !apiKeyInput.trim()}
-                                            className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            {isSavingKey ? 'Saving...' : 'Save Key'}
-                                        </button>
-                                        {aiSettings.apiKey && (
-                                            <button
-                                                onClick={handleRemoveApiKey}
-                                                className="px-3 py-1.5 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                            >
-                                                Remove
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                                    <a
-                                        href="https://aistudio.google.com/app/apikey"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                        \u2192 Get a free API key from Google AI Studio
-                                    </a>
                                 </div>
                             </div>
                         </div>

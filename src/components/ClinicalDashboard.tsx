@@ -317,6 +317,19 @@ export const ClinicalDashboard: React.FC = () => {
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                {/* Empty State for New Users */}
+                {(!selectedPatient.reports || selectedPatient.reports.length === 0) && (!selectedPatient.medicalHistory || selectedPatient.medicalHistory.length === 0) && (
+                    <div className="glass-card rounded-2xl p-5 text-center space-y-3">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                            <ClipboardListIcon className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">No Health Records Yet</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Upload medical documents (lab results, imaging, prescriptions) to populate your clinical dashboard with personalized insights.
+                        </p>
+                    </div>
+                )}
+
                 {/* Hemodynamics Card */}
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden group hover:scale-[1.01] transition-transform">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">

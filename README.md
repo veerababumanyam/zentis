@@ -14,7 +14,7 @@ MediSnap AI is a conversational co-pilot that instantly transforms complex patie
     -   *Models:* `gemini-2.5-flash` (Speed), `gemini-3-pro-preview` (Deep Reasoning/Vision), `gemini-2.5-flash-native-audio-preview` (Live)
 -   **State Management:** React Hooks (Context API)
 -   **Data Persistence:** Browser's IndexedDB for patient records and LocalStorage for user preferences.
--   **Build:** No build step required. The app runs directly in the browser using ES modules and an import map.
+-   **Build:** Vite (npm run dev / npm run build)
 
 ## Project Structure
 

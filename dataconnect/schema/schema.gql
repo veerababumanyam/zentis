@@ -1,0 +1,110 @@
+# User table for authentication and profile data
+type User @table {
+  uid: String! @unique
+  email: String!
+  displayName: String
+  photoURL: String
+  role: String! # 'doctor' | 'patient'
+  geminiApiKey: String
+  createdAt: Float!
+  
+  # For Doctors
+  patients: [String]
+  
+  # For Patients
+  age: Int
+  gender: String
+  allergies: [String]
+  medicalHistory: [String]
+}
+
+# Patient Record
+type Patient @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String!
+  age: Int!
+  gender: String!
+  weight: Float
+  allergies: [String]
+  medicalHistory: [String]
+  assignedDoctor: User
+}
+
+# Medical Reports
+type Report @table {
+  id: UUID! @default(expr: "uuidV4()")
+  type: String!
+  date: String!
+  title: String!
+  content: String!
+  aiSummary: String
+  keyFindings: [String]
+  patient: Patient!
+  createdBy: User
+}
+
+# Clinical Tasks
+type ClinicalTask @table {
+  id: UUID! @default(expr: "uuidV4()")
+  text: String!
+  isCompleted: Boolean!
+  createdAt: String!
+  assignee: User
+}
+
+# Medications prescribed to a patient
+type Medication @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  name: String!
+  dose: String!
+  frequency: String!
+  route: String
+  status: String! # 'active' | 'stopped' | 'held'
+  startDate: String
+  endDate: String
+  prescriber: String
+  indication: String
+  sourceReportId: String
+  createdAt: Float!
+}
+
+# Lab Results for a patient
+type LabResult @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  testName: String!
+  value: Float!
+  unit: String!
+  referenceRange: String
+  date: String!
+  category: String # 'Chemistry' | 'Hematology' | 'Microbiology' | 'Other'
+  isAbnormal: Boolean
+  sourceReportId: String
+  createdAt: Float!
+}
+
+# Vital Signs for a patient
+type VitalSign @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  type: String! # 'BP' | 'HR' | 'Respiratory Rate' | 'Temp' | 'O2 Sat' | 'Weight' ...
+  value: Float!
+  value2: Float # Secondary value (e.g., Diastolic BP)
+  unit: String!
+  date: String!
+  source: String
+  createdAt: Float!
+}
+
+# Diagnoses for a patient
+type Diagnosis @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  name: String!
+  icd10: String
+  status: String! # 'active' | 'resolved' | 'historical'
+  onsetDate: String
+  notes: String
+  createdAt: Float!
+}

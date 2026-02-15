@@ -260,6 +260,12 @@ export const LiveAssistant: React.FC = () => {
   const startSession = useCallback(async () => {
     if (!patient) return;
 
+    // Pre-check: require API key before requesting media permissions
+    if (!aiSettings.apiKey) {
+      showToast('Please add your Gemini API Key in Settings → Personalization to use Live Assistant.', 'error');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -272,7 +278,7 @@ export const LiveAssistant: React.FC = () => {
       outputGainNodeRef.current.gain.value = isScribeActive ? 0 : 1;
       outputGainNodeRef.current.connect(outputAudioContextRef.current.destination);
 
-      const ai = new GoogleGenAI({ apiKey: aiSettings.apiKey || process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: aiSettings.apiKey });
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',

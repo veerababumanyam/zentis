@@ -11,7 +11,7 @@
 export interface UserDocument {
     uid: string;
     email: string;
-    role: 'doctor' | 'nurse' | 'patient' | 'admin';
+    role: 'doctor' | 'patient';
     displayName: string;
     photoURL: string;
     createdAt: number;

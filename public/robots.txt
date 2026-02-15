@@ -1,0 +1,39 @@
+# MediSnap AI - Robots.txt
+# https://medisnapai.com/
+
+# Allow all major search engine crawlers
+User-agent: *
+Allow: /
+
+# Disallow API and internal paths
+Disallow: /api/
+Disallow: /admin/
+Disallow: /__/
+
+# Allow AI crawlers (Google AI, OpenAI, Anthropic, etc.)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+# Sitemap location
+Sitemap: https://medisnapai.com/sitemap.xml

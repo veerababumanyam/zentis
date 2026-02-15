@@ -1,0 +1,426 @@
+extend type Query {
+  """
+  ✨ Look up a single `ClinicalTask` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  clinicalTask(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: ClinicalTask_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: ClinicalTask_FirstRow
+  ): ClinicalTask @fdc_generated(from: "ClinicalTask", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Diagnosis` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  diagnosis(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Diagnosis_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Diagnosis_FirstRow
+  ): Diagnosis @fdc_generated(from: "Diagnosis", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `LabResult` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  labResult(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: LabResult_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: LabResult_FirstRow
+  ): LabResult @fdc_generated(from: "LabResult", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Medication` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  medication(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Medication_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Medication_FirstRow
+  ): Medication @fdc_generated(from: "Medication", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Patient` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  patient(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Patient_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Patient_FirstRow
+  ): Patient @fdc_generated(from: "Patient", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Report` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  report(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Report_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Report_FirstRow
+  ): Report @fdc_generated(from: "Report", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `User` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  user(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User @fdc_generated(from: "User", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `VitalSign` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  vitalSign(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: VitalSign_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: VitalSign_FirstRow
+  ): VitalSign @fdc_generated(from: "VitalSign", purpose: QUERY_SINGLE)
+  """
+  ✨ List `ClinicalTask` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  clinicalTasks(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: ClinicalTask_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [ClinicalTask_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: ClinicalTask_Having
+  ): [ClinicalTask!]! @fdc_generated(from: "ClinicalTask", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Diagnosis` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  diagnoses(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Diagnosis_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Diagnosis_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Diagnosis_Having
+  ): [Diagnosis!]! @fdc_generated(from: "Diagnosis", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `LabResult` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  labResults(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: LabResult_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [LabResult_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: LabResult_Having
+  ): [LabResult!]! @fdc_generated(from: "LabResult", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Medication` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  medications(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Medication_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Medication_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Medication_Having
+  ): [Medication!]! @fdc_generated(from: "Medication", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Patient` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  patients(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Patient_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Patient_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Patient_Having
+  ): [Patient!]! @fdc_generated(from: "Patient", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Report` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  reports(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Report_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Report_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Report_Having
+  ): [Report!]! @fdc_generated(from: "Report", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `User` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  users(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: User_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [User_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: User_Having
+  ): [User!]! @fdc_generated(from: "User", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `VitalSign` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  vitalSigns(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: VitalSign_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [VitalSign_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: VitalSign_Having
+  ): [VitalSign!]! @fdc_generated(from: "VitalSign", purpose: QUERY_MULTIPLE)
+}

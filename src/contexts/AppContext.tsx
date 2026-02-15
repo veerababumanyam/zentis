@@ -9,6 +9,7 @@ import { uploadReportAttachment } from '../services/storageService'; // NEW
 import { getNextQuestions } from '../services/clinicalPathwaysService';
 import { getFileTypeFromFile, getLinkMetadata } from '../utils';
 import { getBriefing, setBriefing } from '../services/cacheService';
+import { MissingApiKeyError } from '../errors';
 
 import { useAuth } from './AuthContext'; // NEW
 
@@ -80,7 +81,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 // Removed hardcoded USER_PROFILE_ID
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user, userProfile } = useAuth(); // NEW
+    const { user, userProfile, updateGeminiApiKey } = useAuth(); // NEW
     const [state, dispatch] = useReducer(appReducer, initialState, (init) => {
         try {
             const savedChats = localStorage.getItem('chatHistories');
@@ -144,6 +145,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dispatch({ type: 'UPDATE_AI_SETTINGS', payload: { apiKey: userProfile.geminiApiKey } });
         }
     }, [userProfile, aiSettings.apiKey]);
+
+    // Bidirectional sync: when aiSettings.apiKey changes from the Settings UI, persist to Firestore
+    const updateAiSettings = useCallback((settings: Partial<AppState['aiSettings']>) => {
+        dispatch({ type: 'UPDATE_AI_SETTINGS', payload: settings });
+        // If the API key changed, persist it to Firestore
+        if (settings.apiKey !== undefined && user) {
+            updateGeminiApiKey(settings.apiKey).catch(err =>
+                console.error('Failed to persist API key to Firestore:', err)
+            );
+        }
+    }, [user, updateGeminiApiKey]);
 
     useEffect(() => {
         localStorage.setItem('chatHistories', JSON.stringify(chatHistories));
@@ -245,7 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'ADD_FEEDBACK', payload: newFeedback });
         showToast('Feedback submitted.', 'success');
     }, [showToast]);
-    const updateAiSettings = useCallback((settings: Partial<AppState['aiSettings']>) => dispatch({ type: 'UPDATE_AI_SETTINGS', payload: settings }), []);
+    // updateAiSettings is defined earlier with bidirectional Firestore sync
     const setMobileView = useCallback((view: 'list' | 'chat') => dispatch({ type: 'SET_MOBILE_VIEW', payload: view }), []);
     const togglePatientList = useCallback(() => dispatch({ type: 'TOGGLE_PATIENT_LIST' }), []);
     const toggleDashboard = useCallback(() => dispatch({ type: 'TOGGLE_DASHBOARD' }), []);
@@ -373,9 +385,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         } catch (error: any) {
             console.error("Send message error:", error);
-            const errorMessage = error.message || 'Failed to get AI response.';
+            const isMissingKey = error instanceof MissingApiKeyError || error?.name === 'MissingApiKeyError';
+            const errorMessage = isMissingKey
+                ? 'Please add your Gemini API Key in Settings → Personalization to use AI features.'
+                : (error.message || 'Failed to get AI response.');
             showToast(errorMessage, 'error');
-            const errorMsg: TextMessage = { id: Date.now() + 1, sender: 'ai', type: 'text', text: `Sorry, an error occurred: ${errorMessage}` };
+            const errorMsg: TextMessage = {
+                id: Date.now() + 1,
+                sender: 'ai',
+                type: 'text',
+                text: isMissingKey
+                    ? '🔑 **API Key Required**\n\nTo use AI-powered features, please add your Gemini API Key:\n1. Click the ⚙️ **Settings** icon\n2. Go to the **Personalization** tab\n3. Enter your key and click **Save**\n\n[Get a free key from Google AI Studio](https://aistudio.google.com/app/apikey)'
+                    : `Sorry, an error occurred: ${errorMessage}`
+            };
             dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: errorMsg } });
         } finally {
             dispatch({ type: 'SET_CHAT_LOADING', payload: false });

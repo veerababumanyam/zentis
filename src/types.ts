@@ -1,5 +1,5 @@
 
-export type UserRole = 'doctor' | 'nurse' | 'patient' | 'admin';
+export type UserRole = 'doctor' | 'patient';
 
 export interface UserProfile {
     uid: string;

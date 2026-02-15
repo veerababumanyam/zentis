@@ -1,0 +1,52 @@
+extend type ClinicalTask {
+  """
+  ✨ Implicit foreign key field based on `ClinicalTask`.`assignee`. It must match the value of `User`.`id`. See `@ref` for how to customize it.
+  """
+  assigneeId: UUID @fdc_generated(from: "ClinicalTask.assignee", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Diagnosis {
+  """
+  ✨ Implicit foreign key field based on `Diagnosis`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "Diagnosis.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type LabResult {
+  """
+  ✨ Implicit foreign key field based on `LabResult`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "LabResult.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Medication {
+  """
+  ✨ Implicit foreign key field based on `Medication`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "Medication.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Patient {
+  """
+  ✨ Implicit foreign key field based on `Patient`.`assignedDoctor`. It must match the value of `User`.`id`. See `@ref` for how to customize it.
+  """
+  assignedDoctorId: UUID @fdc_generated(from: "Patient.assignedDoctor", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Report {
+  """
+  ✨ Implicit foreign key field based on `Report`.`createdBy`. It must match the value of `User`.`id`. See `@ref` for how to customize it.
+  """
+  createdById: UUID @fdc_generated(from: "Report.createdBy", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Report`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "Report.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type User {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "User", purpose: IMPLICIT_KEY_FIELD)
+}
+extend type VitalSign {
+  """
+  ✨ Implicit foreign key field based on `VitalSign`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "VitalSign.patient", purpose: IMPLICIT_REF_FIELD)
+}

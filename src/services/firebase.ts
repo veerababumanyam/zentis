@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 // Helper to access environment variables in both Vite and Node.js environments
@@ -35,5 +35,19 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Connect to emulators if in development mode and VITE_USE_EMULATORS is set
+if (getEnv('VITE_USE_EMULATORS') === 'true') {
+    // Auth Emulator
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+    
+    // Firestore Emulator
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    
+    // Storage Emulator
+    connectStorageEmulator(storage, '127.0.0.1', 9199);
+    
+    console.log('Firebase Emulators connected');
+}
 
 export default app;

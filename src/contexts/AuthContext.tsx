@@ -6,9 +6,11 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import type { UserProfile } from '../types';
+import { GoogleGenAI } from '@google/genai';
+import { isValidUserRole } from '../utils/roleValidation';
 
 interface AuthContextType {
     user: User | null;
@@ -17,6 +19,8 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: () => Promise<void>;
+    updateGeminiApiKey: (key: string) => Promise<void>;
+    validateApiKey: (key: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const userDoc = await getDoc(doc(db, 'users', uid));
             if (userDoc.exists()) {
-                setUserProfile(userDoc.data() as UserProfile);
+                const data = userDoc.data() as UserProfile;
+                // Validate role - if invalid (nurse/admin), treat as missing profile
+                if (!isValidUserRole(data.role)) {
+                    console.warn(`Invalid role detected: ${data.role}. Forcing re-onboarding.`);
+                    setUserProfile(null);
+                    return;
+                }
+                setUserProfile(data);
             } else {
                 setUserProfile(null);
             }
@@ -77,8 +88,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    /** Persist a new Gemini API key to Firestore and refresh the profile */
+    const updateGeminiApiKey = async (key: string) => {
+        if (!user) throw new Error('Not authenticated');
+        await updateDoc(doc(db, 'users', user.uid), { geminiApiKey: key });
+        // Optimistically update local state so the key is available immediately
+        setUserProfile(prev => prev ? { ...prev, geminiApiKey: key } : prev);
+    };
+
+    /** Lightweight validation: calls models.list() to check if the key works */
+    const validateApiKey = async (key: string): Promise<boolean> => {
+        try {
+            const ai = new GoogleGenAI({ apiKey: key });
+            // A very cheap call — just list available models
+            await ai.models.list({ pageSize: 1 });
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, userProfile, loading, signInWithGoogle, logout, refreshProfile }}>
+        <AuthContext.Provider value={{ user, userProfile, loading, signInWithGoogle, logout, refreshProfile, updateGeminiApiKey, validateApiKey }}>
             {children}
         </AuthContext.Provider>
     );

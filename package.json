@@ -5,15 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_USE_EMULATORS=true vite",
+    "emulators": "firebase emulators:start",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cleanup:roles": "node scripts/cleanup-legacy-roles.mjs"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@google/adk": "^0.3.0",
     "@google/adk-devtools": "^0.3.0",
     "@google/genai": "1.16.0",
     "dotenv": "^17.3.1",
     "firebase": "^12.9.0",
+    "firebase-admin": "^13.0.1",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },

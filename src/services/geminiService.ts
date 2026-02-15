@@ -4,9 +4,13 @@ import { agentRouter } from './agentRouter';
 import * as agents from './agents';
 import type { Patient, Message, TextMessage, Report, ConsultationPayload, DailyHuddle, AiPersonalizationSettings, UploadableFile, ClinicalNote } from '../types';
 import type { MedicationDocument, LabResultDocument, VitalSignDocument, DiagnosisDocument } from './databaseSchema';
+import { MissingApiKeyError } from '../errors';
 
-// Helper to get an AI instance
-const getAiClient = (apiKey?: string) => new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
+// Helper to get an AI instance — requires a user-provided key
+const getAiClient = (apiKey?: string) => {
+    if (!apiKey) throw new MissingApiKeyError();
+    return new GoogleGenAI({ apiKey });
+};
 
 export const getAiResponse = async (query: string, patient: Patient, aiSettings: AiPersonalizationSettings): Promise<Message> => {
     // Note: agentRouter might need updates too, but it likely calls these services

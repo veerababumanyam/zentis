@@ -3,6 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { ThumbsUpIcon } from './icons/ThumbsUpIcon';
 import { ThumbsDownIcon } from './icons/ThumbsDownIcon';
 import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { fetchPatients, exportAllData, importData } from '../services/ehrService';
 import { UploadIcon } from './icons/UploadIcon';
 import { DocumentIcon } from './icons/DocumentIcon';
@@ -18,13 +19,79 @@ const RadioPill: React.FC<{ label: string, value: string, name: string, checked:
     </label>
 );
 
+/** Show last 4 characters of the key, rest masked */
+function apiSettings_maskedDisplay(key?: string): string {
+  if (!key || key.length < 8) return key ? '••••••••' : '';
+  return '••••••••' + key.slice(-4);
+}
+
 export const FeedbackModal: React.FC = () => {
   const { state, actions } = useAppContext();
   const { isPerformanceModalOpen, feedbackHistory, aiSettings } = state;
   const { togglePerformanceModal, updateAiSettings, showToast } = actions;
+  const { validateApiKey } = useAuth();
   
   const [activeTab, setActiveTab] = useState<Tab>('performance');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // API Key management state
+  const [apiKeyInput, setApiKeyInput] = useState(aiSettings.apiKey || '');
+  const [isTestingKey, setIsTestingKey] = useState(false);
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keyTestResult, setKeyTestResult] = useState<'success' | 'error' | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  // Sync input when modal opens with latest aiSettings
+  React.useEffect(() => {
+    if (isPerformanceModalOpen) {
+      setApiKeyInput(aiSettings.apiKey || '');
+      setKeyTestResult(null);
+    }
+  }, [isPerformanceModalOpen, aiSettings.apiKey]);
+
+  const handleTestApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      showToast('Please enter an API key first.', 'error');
+      return;
+    }
+    setIsTestingKey(true);
+    setKeyTestResult(null);
+    try {
+      const valid = await validateApiKey(apiKeyInput.trim());
+      setKeyTestResult(valid ? 'success' : 'error');
+      showToast(valid ? 'API key is valid!' : 'Invalid API key. Please check and try again.', valid ? 'success' : 'error');
+    } catch {
+      setKeyTestResult('error');
+      showToast('Failed to validate key. Check your network connection.', 'error');
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      showToast('Please enter an API key.', 'error');
+      return;
+    }
+    setIsSavingKey(true);
+    try {
+      updateAiSettings({ apiKey: apiKeyInput.trim() });
+      showToast('API key saved successfully!', 'success');
+    } catch {
+      showToast('Failed to save API key.', 'error');
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
+  const handleRemoveApiKey = () => {
+    setApiKeyInput('');
+    updateAiSettings({ apiKey: '' });
+    setKeyTestResult(null);
+    showToast('API key removed.', 'info');
+  };
+
+  const maskedKey = apiSettings_maskedDisplay(aiSettings.apiKey);
 
   const performanceStats = useMemo(() => {
     const total = feedbackHistory.length;
@@ -170,6 +237,91 @@ export const FeedbackModal: React.FC = () => {
                             <RadioPill label="Default" value="default" name="tone" checked={aiSettings.tone === 'default'} onChange={(v) => updateAiSettings({ tone: v as any })}/>
                             <RadioPill label="Collaborative" value="collaborative" name="tone" checked={aiSettings.tone === 'collaborative'} onChange={(v) => updateAiSettings({ tone: v as any })}/>
                          </div>
+                    </div>
+
+                    {/* API Key Management */}
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 space-y-4">
+                        <div>
+                            <h4 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+                                <span className="mr-2">\ud83d\udd11</span> Gemini API Key
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Required for all AI-powered features. Your key is stored securely in your account and never shared.
+                            </p>
+                        </div>
+
+                        {aiSettings.apiKey && (
+                            <div className="flex items-center space-x-2 text-sm">
+                                <span className="text-green-600 dark:text-green-400 font-semibold">\u2713 Active</span>
+                                <span className="text-gray-400 font-mono">{maskedKey}</span>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            <div className="relative">
+                                <input
+                                    type={showApiKey ? 'text' : 'password'}
+                                    value={apiKeyInput}
+                                    onChange={(e) => { setApiKeyInput(e.target.value); setKeyTestResult(null); }}
+                                    placeholder="Enter your Gemini API Key..."
+                                    className={`w-full px-3 py-2 pr-20 text-sm rounded-lg border bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                                        keyTestResult === 'success' ? 'border-green-400 focus:ring-green-400' :
+                                        keyTestResult === 'error' ? 'border-red-400 focus:ring-red-400' :
+                                        'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                                    }`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1"
+                                >
+                                    {showApiKey ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+
+                            {keyTestResult === 'success' && (
+                                <p className="text-xs text-green-600 dark:text-green-400">\u2713 Key verified successfully.</p>
+                            )}
+                            {keyTestResult === 'error' && (
+                                <p className="text-xs text-red-600 dark:text-red-400">\u2717 Key validation failed. Please check your key.</p>
+                            )}
+
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={handleTestApiKey}
+                                    disabled={isTestingKey || !apiKeyInput.trim()}
+                                    className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isTestingKey ? 'Testing...' : 'Test Key'}
+                                </button>
+                                <button
+                                    onClick={handleSaveApiKey}
+                                    disabled={isSavingKey || !apiKeyInput.trim()}
+                                    className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isSavingKey ? 'Saving...' : 'Save Key'}
+                                </button>
+                                {aiSettings.apiKey && (
+                                    <button
+                                        onClick={handleRemoveApiKey}
+                                        className="px-3 py-1.5 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <a
+                                href="https://aistudio.google.com/app/apikey"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                \u2192 Get a free API key from Google AI Studio
+                            </a>
+                        </div>
                     </div>
                 </div>
              )}

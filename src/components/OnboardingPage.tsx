@@ -68,7 +68,7 @@ export const OnboardingPage: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium mb-2">I am a...</label>
                         <div className="grid grid-cols-2 gap-4">
-                            {(['doctor', 'patient', 'nurse'] as UserRole[]).map((r) => (
+                            {(['doctor', 'patient'] as UserRole[]).map((r) => (
                                 <button
                                     key={r}
                                     onClick={() => setRole(r)}
@@ -111,18 +111,28 @@ export const OnboardingPage: React.FC = () => {
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium mb-2">Gemini API Key (Optional)</label>
+                        <label className="block text-sm font-medium mb-2">
+                            Gemini API Key
+                            <span className="ml-1 text-yellow-600 dark:text-yellow-400 text-xs font-normal">(Recommended)</span>
+                        </label>
                         <input
                             type="password"
                             value={apiKey}
                             onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="Enter your API Key"
+                            placeholder="Enter your Gemini API Key"
                             className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                         />
                         <p className="mt-2 text-xs text-gray-500">
-                            Required for AI features. You can add this later in settings.
-                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline ml-1">Get a key</a>
+                            Powers all AI-powered analysis, prescriptions, and smart summaries.
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline ml-1">Get a free key from Google AI Studio &rarr;</a>
                         </p>
+                        {!apiKey && (
+                            <div className="mt-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                <p className="text-xs text-amber-700 dark:text-amber-300">
+                                    <strong>Note:</strong> Without an API key, AI features will be unavailable. You can always add it later in <strong>Settings &rarr; Personalization</strong>.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <button

@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "lyricstudio-app": {
+      "hosting": {
+        "medisnap": [
+          "medisnap"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

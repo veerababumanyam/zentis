@@ -8,11 +8,22 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '')
+        },
+        '/a2a': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false
+        }
+      }
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      // No central Gemini key — users provide their own via Settings
     },
     resolve: {
       alias: {

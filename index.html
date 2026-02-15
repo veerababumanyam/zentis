@@ -5,7 +5,96 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MediSnap: AI Medical Assistant</title>
+  <title>MediSnap AI — AI-Powered Clinical Intelligence Platform | Medical AI Assistant</title>
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="MediSnap AI is an AI-powered clinical intelligence platform featuring Bio-AI medical boards, real-time biomarker detection, multi-agent clinical critics, and 12+ medical subspecialty AI agents. Transform patient data into actionable insights." />
+  <meta name="keywords" content="medical AI, clinical intelligence, AI diagnosis, biomarker detection, telehealth AI, HIPAA compliant AI, cardiology AI, neurology AI, clinical decision support, medical board simulation, healthcare AI platform" />
+  <meta name="author" content="MediSnap AI" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://medisnapai.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://medisnapai.com/" />
+  <meta property="og:title" content="MediSnap AI — The Future of Clinical Intelligence" />
+  <meta property="og:description" content="Transform complex patient data into actionable insights with Live Bio-Signals, Multi-Agent Medical Boards, and real-time clinical critics. 12+ medical specialties powered by AI." />
+  <meta property="og:image" content="https://medisnapai.com/og-image.png" />
+  <meta property="og:site_name" content="MediSnap AI" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://medisnapai.com/" />
+  <meta name="twitter:title" content="MediSnap AI — AI-Powered Clinical Intelligence Platform" />
+  <meta name="twitter:description" content="AI-powered healthcare platform with Bio-AI boards, real-time biomarker detection, and 12+ medical subspecialties." />
+  <meta name="twitter:image" content="https://medisnapai.com/og-image.png" />
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MedicalOrganization",
+    "name": "MediSnap AI",
+    "url": "https://medisnapai.com",
+    "logo": "https://medisnapai.com/vite.svg",
+    "description": "AI-powered clinical intelligence platform for healthcare professionals",
+    "medicalSpecialty": ["Cardiology", "Neurology", "Oncology", "Nephrology", "Pulmonology", "Endocrinology", "Gastroenterology", "Rheumatology", "Geriatrics", "Infectious Disease", "Electrophysiology"],
+    "sameAs": []
+  }
+  </script>
+
+  <!-- Structured Data: Software Application -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MediSnap AI",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "AI-powered clinical intelligence platform with Bio-AI medical boards, real-time biomarker detection, and multi-agent clinical workflows.",
+    "featureList": "Bio-AI Board, Clinical Critics, Live Assistant, Agentic Workflows, Smart Prescriptions, Clinical Dashboard, DICOM Viewer, Risk Stratification"
+  }
+  </script>
+
+  <!-- Structured Data: FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is MediSnap AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MediSnap AI is an AI-powered clinical intelligence platform that transforms complex patient data into actionable insights. It features Bio-AI medical board simulations, real-time biomarker detection, multi-agent clinical critics, and support for 12+ medical subspecialties."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is MediSnap AI HIPAA compliant?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, MediSnap AI is fully HIPAA compliant with SOC 2 Type II certification, AES-256 encryption, and enterprise-grade security controls to protect patient data."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What medical specialties does MediSnap AI support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MediSnap AI supports 12+ medical specialties including Interventional Cardiology, Electrophysiology, Heart Failure, Neurology, Nephrology, Oncology, Pulmonology, Endocrinology, Infectious Disease, Gastroenterology, Rheumatology, and Geriatrics."
+        }
+      }
+    ]
+  }
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Liquid Aurora Background Animation */
@@ -103,6 +192,112 @@
       background: rgba(59, 130, 246, 0.3);
       color: inherit;
     }
+
+    /* ─── Landing Page – Glass & Aurora ──────────────────── */
+    .landing-glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .landing-glass-nav {
+      background: rgba(3, 7, 18, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .landing-aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      animation: landing-aurora-drift 18s infinite ease-in-out alternate;
+    }
+
+    @keyframes landing-aurora-drift {
+      0%   { transform: translate(0, 0) scale(1); opacity: 0.6; }
+      25%  { transform: translate(40px, -60px) scale(1.08); opacity: 0.7; }
+      50%  { transform: translate(-30px, 40px) scale(0.95); opacity: 0.5; }
+      75%  { transform: translate(50px, 20px) scale(1.05); opacity: 0.65; }
+      100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+    }
+
+    /* ─── Landing Page – Shimmer Effect ─────────────────── */
+    .landing-shimmer {
+      background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 70%
+      );
+      background-size: 200% 100%;
+      animation: landing-shimmer-move 3s ease-in-out infinite;
+    }
+
+    @keyframes landing-shimmer-move {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ─── Landing Page – HUD Scan Line ──────────────────── */
+    .landing-scan-line {
+      animation: landing-scan 3s ease-in-out infinite;
+    }
+
+    @keyframes landing-scan {
+      0%, 100% { transform: translateY(0); opacity: 0.3; }
+      50%      { transform: translateY(400px); opacity: 0.8; }
+    }
+
+    /* ─── Landing Page – Entrance Animations ────────────── */
+    .landing-fade-in {
+      animation: landing-fade-in 0.8s ease-out both;
+    }
+
+    @keyframes landing-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .landing-slide-up {
+      animation: landing-slide-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes landing-slide-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Landing Page – Gradient Text Animation ────────── */
+    .landing-gradient-text {
+      background-size: 200% auto;
+      animation: landing-gradient-shift 4s linear infinite;
+    }
+
+    @keyframes landing-gradient-shift {
+      0%   { background-position: 0% center; }
+      50%  { background-position: 100% center; }
+      100% { background-position: 0% center; }
+    }
+
+    /* ─── Landing Page – Animation Delays ───────────────── */
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+
+    /* ─── Landing Page – Custom Scrollbar ───────────────── */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
   </style>
   <script>
     // This script prevents a flash of unstyled content (FOUC) by applying the saved theme before the page loads.
@@ -121,23 +316,14 @@
     window.process = window.process || { env: {} };
   </script>
   <!-- DICOM Viewer Library -->
+  <!-- External Libraries -->
+  <!-- DICOM Viewer Library -->
   <script src="https://cdn.jsdelivr.net/npm/dwv@0.31.2/dist/dwv.min.js"></script>
   <!-- PDF.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
   <!-- JSZip Library -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "@google/genai": "https://esm.sh/@google/genai@1.16.0"
-  }
-}
-</script>
+  <!-- Importmap removed to avoid conflict with Vite bundler -->
   <link rel="stylesheet" href="/index.css">
 </head>
 

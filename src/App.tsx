@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { HealthRecordSidebar } from './components/HealthRecordSidebar';
 import { PatientSelector } from './components/PatientSelector'; // NEW
 import { ChatWindow } from './components/ChatWindow';
@@ -13,7 +13,20 @@ import { LiveAssistant } from './components/LiveAssistant';
 import { ClinicalDashboard } from './components/ClinicalDashboard';
 import { LandingPage } from './components/LandingPage';
 import { OnboardingPage } from './components/OnboardingPage';
+import { ArchitectProfile } from './components/ArchitectProfile';
+import { ApiKeyMissingBanner } from './components/ApiKeyMissingBanner';
 import { useAuth } from './contexts/AuthContext';
+
+/** Simple hash-based route hook for public pages */
+const useHashRoute = () => {
+    const [hash, setHash] = useState(window.location.hash);
+    useEffect(() => {
+        const onHashChange = () => setHash(window.location.hash);
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
+    return hash;
+};
 
 // Lazy load modals to code-split them from the main bundle
 const ReportViewerModal = React.lazy(() => import('./components/ReportViewerModal').then(module => ({ default: module.ReportViewerModal })));
@@ -36,10 +49,23 @@ const App: React.FC = () => {
         selectedPatient,
         isPatientListCollapsed,
         isNoteModalOpen,
-        isDashboardOpen
+        isDashboardOpen,
+        aiSettings
     } = state;
 
     const { user, userProfile, loading, signInWithGoogle } = useAuth();
+    const hash = useHashRoute();
+
+    // Public route: Architect Profile (no auth required)
+    if (hash === '#architect') {
+        return (
+            <ThemeProvider>
+                <div className="h-screen w-screen relative overflow-hidden font-sans text-gray-800 dark:text-gray-200 selection:bg-blue-500/30">
+                    <ArchitectProfile onBack={() => { window.location.hash = ''; }} />
+                </div>
+            </ThemeProvider>
+        );
+    }
 
     if (loading) {
         return (
@@ -82,7 +108,12 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Content Layer */}
-                <div className="relative z-10 flex h-full w-full">
+                <div className="relative z-10 flex flex-col h-full w-full">
+                    {/* API Key Missing Banner */}
+                    {!aiSettings.apiKey && (
+                        <ApiKeyMissingBanner onOpenSettings={actions.togglePerformanceModal} />
+                    )}
+                    <div className="flex flex-1 min-h-0">
                     <>
                         <ToastContainer />
 
@@ -168,6 +199,7 @@ const App: React.FC = () => {
                             )}
                         </Suspense>
                     </>
+                    </div>
                 </div>
 
             </div>

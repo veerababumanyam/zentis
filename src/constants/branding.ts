@@ -1,29 +1,29 @@
 /**
- * Logo and brand asset paths for MediSnap AI
- * All sizes are generated from /public/MediSnapLogo.png
+ * Logo and brand asset paths for Zentis AI
+ * All sizes are generated from /public/ZentisLogo.png
  */
 
 export const LOGO_PATHS = {
   // Main logo
-  original: '/MediSnapLogo.png',
-  
+  original: '/logo.png',
+
   // Favicons
-  favicon16: '/favicon-16x16.png',
-  favicon32: '/favicon-32x32.png',
-  favicon48: '/favicon-48x48.png',
-  faviconIco: '/favicon.ico',
-  
+  favicon16: '/logo.png',
+  favicon32: '/logo.png',
+  favicon48: '/logo.png',
+  faviconIco: '/logo.png',
+
   // Apple/iOS
-  appleTouchIcon: '/apple-touch-icon.png',
-  
+  appleTouchIcon: '/logo.png',
+
   // Android/PWA
-  androidChrome192: '/android-chrome-192x192.png',
-  androidChrome512: '/android-chrome-512x512.png',
-  
+  androidChrome192: '/logo.png',
+  androidChrome512: '/logo.png',
+
   // Microsoft/Windows
-  msIcon144: '/ms-icon-144x144.png',
-  msIcon310: '/ms-icon-310x310.png',
-  
+  msIcon144: '/logo.png',
+  msIcon310: '/logo.png',
+
   // Manifest
   webManifest: '/site.webmanifest',
   browserConfig: '/browserconfig.xml',
@@ -36,5 +36,5 @@ export const BRAND_COLORS = {
   background: '#ffffff',
 } as const;
 
-export const BRAND_NAME = 'MediSnap AI';
-export const BRAND_TAGLINE = 'AI-Powered Clinical Intelligence Platform';
+export const BRAND_NAME = 'Zentis';
+export const BRAND_TAGLINE = 'Medical AI Assistant';

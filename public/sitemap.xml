@@ -4,7 +4,7 @@
 
   <!-- Homepage / Landing Page -->
   <url>
-    <loc>https://medisnapai.com/</loc>
+    <loc>https://Zentisai.com/</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -12,28 +12,28 @@
 
   <!-- Feature Sections (SPA anchors for reference) -->
   <url>
-    <loc>https://medisnapai.com/#features</loc>
+    <loc>https://Zentisai.com/#features</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://medisnapai.com/#specialties</loc>
+    <loc>https://Zentisai.com/#specialties</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://medisnapai.com/#biomarkers</loc>
+    <loc>https://Zentisai.com/#biomarkers</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://medisnapai.com/#testimonials</loc>
+    <loc>https://Zentisai.com/#testimonials</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -41,7 +41,7 @@
 
   <!-- Architect Profile (Public Page) -->
   <url>
-    <loc>https://medisnapai.com/#architect</loc>
+    <loc>https://Zentisai.com/#architect</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

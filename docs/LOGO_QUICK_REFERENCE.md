@@ -1,4 +1,4 @@
-# MediSnap AI Logo Quick Reference
+# Zentis AI Logo Quick Reference
 
 ## 📦 Import Options
 
@@ -56,7 +56,7 @@ import { Logo } from './components/LogoImage';
 
 <div className="text-center">
   <Logo.Large className="mx-auto mb-8" />
-  <h1>Welcome to MediSnap AI</h1>
+  <h1>Welcome to Zentis AI</h1>
 </div>
 ```
 
@@ -84,7 +84,7 @@ import { LOGO_PATHS } from './constants/branding';
   src={`https://yourdomain.com${LOGO_PATHS.appleTouchIcon}`}
   width="60"
   height="60"
-  alt="MediSnap AI"
+  alt="Zentis AI"
 />
 ```
 
@@ -106,7 +106,7 @@ bg-[#3b82f6]  // Primary Light
 ## 📱 All Available Logo Paths
 
 ```tsx
-LOGO_PATHS.original           // /MediSnapLogo.png (600×600)
+LOGO_PATHS.original           // /ZentisLogo.png (600×600)
 LOGO_PATHS.favicon16          // /favicon-16x16.png
 LOGO_PATHS.favicon32          // /favicon-32x32.png
 LOGO_PATHS.favicon48          // /favicon-48x48.png

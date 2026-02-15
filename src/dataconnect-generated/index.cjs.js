@@ -2,13 +2,13 @@ const { queryRef, executeQuery, validateArgs } = require('firebase/data-connect'
 
 const connectorConfig = {
   connector: 'example',
-  service: 'mediasnap',
+  service: 'Zentis',
   location: 'us-east4'
 };
 exports.connectorConfig = connectorConfig;
 
 const listUsersRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  const { dc: dcInstance } = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'ListUsers');
 }
@@ -20,7 +20,7 @@ exports.listUsers = function listUsers(dc) {
 };
 
 const listPatientsRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  const { dc: dcInstance } = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'ListPatients');
 }
@@ -32,7 +32,7 @@ exports.listPatients = function listPatients(dc) {
 };
 
 const getReportRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'GetReport', inputVars);
 }

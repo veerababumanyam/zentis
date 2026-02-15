@@ -134,7 +134,7 @@ const SKILL_CLUSTERS: SkillCluster[] = [
     },
     {
         category: 'Cloud Infrastructure',
-        icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/></svg>,
+        icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>,
         skills: ['Azure (Expert)', 'Hybrid Cloud', 'Zero Trust Security', 'Kubernetes', 'Docker', 'Aviatrix'],
         gradient: 'from-amber-500 to-orange-400',
     },
@@ -189,9 +189,8 @@ const TimelineCard: React.FC<{ node: ExperienceNode; index: number }> = ({ node,
             style={{ transitionDelay: `${index * 120}ms` }}
         >
             {/* Timeline dot */}
-            <div className={`absolute -left-[37px] md:-left-[41px] top-8 w-5 h-5 rounded-full border-[3px] border-gray-950 z-10 transition-all duration-500 group-hover:scale-125 ${
-                index === 0 ? 'bg-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.6)]' : 'bg-gray-600 group-hover:bg-blue-400'
-            }`} />
+            <div className={`absolute -left-[37px] md:-left-[41px] top-8 w-5 h-5 rounded-full border-[3px] border-gray-950 z-10 transition-all duration-500 group-hover:scale-125 ${index === 0 ? 'bg-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.6)]' : 'bg-gray-600 group-hover:bg-blue-400'
+                }`} />
 
             <div className="relative rounded-3xl landing-glass-card border border-white/[0.08] p-7 md:p-8 hover:border-white/[0.18] transition-all duration-500 overflow-hidden">
                 {/* Hover gradient */}
@@ -207,7 +206,7 @@ const TimelineCard: React.FC<{ node: ExperienceNode; index: number }> = ({ node,
                         <div className="flex flex-col md:items-end gap-1 text-sm text-gray-500 font-mono flex-shrink-0">
                             <span>{node.period}</span>
                             <span className="flex items-center gap-1.5">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
                                 {node.location}
                             </span>
                         </div>
@@ -217,7 +216,7 @@ const TimelineCard: React.FC<{ node: ExperienceNode; index: number }> = ({ node,
                     <ul className="space-y-2.5 mb-6">
                         {node.description.map((desc, i) => (
                             <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed text-gray-400 group-hover:text-gray-300 transition-colors">
-                                <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                                 {desc}
                             </li>
                         ))}
@@ -278,22 +277,22 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                         <button
                             onClick={onBack}
                             className="flex items-center space-x-3 group"
-                            aria-label="Back to MediSnap AI"
+                            aria-label="Back to Zentis AI"
                         >
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/50 group-hover:scale-105 transition-all duration-300">
                                 <LogoIcon className="w-5 h-5 text-white" />
                             </div>
                             <span className="text-lg font-bold text-white tracking-tight">
-                                MediSnap<span className="text-blue-400">AI</span>
+                                Zentis<span className="text-blue-400">AI</span>
                             </span>
                         </button>
                     ) : (
-                        <a href="/" className="flex items-center space-x-3 group" aria-label="MediSnap AI Home">
+                        <a href="/" className="flex items-center space-x-3 group" aria-label="Zentis AI Home">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/50 group-hover:scale-105 transition-all duration-300">
                                 <LogoIcon className="w-5 h-5 text-white" />
                             </div>
                             <span className="text-lg font-bold text-white tracking-tight">
-                                MediSnap<span className="text-blue-400">AI</span>
+                                Zentis<span className="text-blue-400">AI</span>
                             </span>
                         </a>
                     )}
@@ -402,7 +401,7 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                             >
                                 <span className="relative z-10 flex items-center justify-center gap-2">
                                     Connect on LinkedIn
-                                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                                 </span>
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                             </a>
@@ -417,11 +416,11 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                         {/* Quick Stats */}
                         <div className="flex flex-wrap items-center gap-6 mt-8 justify-center lg:justify-start text-gray-500 text-xs landing-slide-up" style={{ animationDelay: '450ms' }}>
                             <div className="flex items-center gap-1.5">
-                                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
                                 <span>Essen, Germany</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                                <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                                 <span>14+ Years Experience</span>
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -519,7 +518,7 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                         Let's Build the Future Together
                     </h2>
                     <p className="text-gray-400 text-lg md:text-xl max-w-xl mx-auto mb-10 font-light leading-relaxed">
-                        Interested in AI-driven enterprise architecture, agentic workflows, or collaborating on MediSnap AI?
+                        Interested in AI-driven enterprise architecture, agentic workflows, or collaborating on Zentis AI?
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <a
@@ -528,7 +527,7 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                         >
                             <span className="relative z-10 flex items-center justify-center gap-2">
                                 Get in Touch
-                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                         </a>
@@ -537,7 +536,7 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                                 onClick={onBack}
                                 className="px-10 py-5 rounded-2xl landing-glass-card border border-white/[0.1] text-white font-semibold text-lg hover:bg-white/[0.08] hover:border-white/[0.2] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                             >
-                                Back to MediSnap AI
+                                Back to Zentis AI
                             </button>
                         )}
                     </div>
@@ -553,10 +552,10 @@ export const ArchitectProfile: React.FC<ArchitectProfileProps> = ({ onBack }) =>
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
                             <LogoIcon className="w-4.5 h-4.5 text-white" />
                         </div>
-                        <span className="text-sm font-bold text-white">MediSnap<span className="text-blue-400">AI</span></span>
+                        <span className="text-sm font-bold text-white">Zentis<span className="text-blue-400">AI</span></span>
                     </div>
                     <p className="text-gray-600 text-xs">
-                        &copy; {new Date().getFullYear()} Veera Babu Manyam. Built with MediSnap AI.
+                        &copy; {new Date().getFullYear()} Veera Babu Manyam. Built with Zentis AI.
                     </p>
                     <div className="flex items-center gap-6">
                         <a href="https://linkedin.com/in/vmanyam" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition-colors text-xs">LinkedIn</a>

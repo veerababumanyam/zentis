@@ -6,7 +6,7 @@ Your Firebase MCP server has been successfully installed and built!
 
 ### Location
 ```
-/Users/v13478/Downloads/MediaSnap/mcp-servers/firebase/
+/Users/v13478/Downloads/Zentis/mcp-servers/firebase/
 ```
 
 ## 🔑 Configuration Steps
@@ -25,7 +25,7 @@ Your Firebase MCP server has been successfully installed and built!
 Create `.env.local` in the Firebase MCP directory:
 
 ```bash
-cd /Users/v13478/Downloads/MediaSnap/mcp-servers/firebase
+cd /Users/v13478/Downloads/Zentis/mcp-servers/firebase
 cp .env.example .env.local
 ```
 
@@ -57,9 +57,9 @@ nano ~/.config/claude/claude_desktop_config.json
   "mcpServers": {
     "firebase": {
       "command": "node",
-      "args": ["/Users/v13478/Downloads/MediaSnap/mcp-servers/firebase/dist/index.js"],
+      "args": ["/Users/v13478/Downloads/Zentis/mcp-servers/firebase/dist/index.js"],
       "env": {
-        "FIREBASE_KEY_PATH": "/Users/v13478/Downloads/MediaSnap/mcp-servers/firebase/firebase-service-account-key.json"
+        "FIREBASE_KEY_PATH": "/Users/v13478/Downloads/Zentis/mcp-servers/firebase/firebase-service-account-key.json"
       }
     }
   }
@@ -92,7 +92,7 @@ nano ~/.config/claude/claude_desktop_config.json
 You can test the MCP server using the MCP Inspector:
 
 ```bash
-cd /Users/v13478/Downloads/MediaSnap/mcp-servers/firebase
+cd /Users/v13478/Downloads/Zentis/mcp-servers/firebase
 
 # Install MCP Inspector globally if not already installed
 npm install -g @modelcontextprotocol/inspector

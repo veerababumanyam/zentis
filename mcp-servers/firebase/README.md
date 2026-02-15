@@ -314,7 +314,7 @@ When adding new tools:
 
 ## License
 
-This MCP server is part of the MediaSnap project.
+This MCP server is part of the Zentis project.
 
 ## References
 

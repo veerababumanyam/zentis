@@ -110,7 +110,13 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
         }
     };
 
-    if (!selectedPatient) return <ModalLoader />;
+    if (!selectedPatient) {
+        return (
+            <div className="flex-1 flex items-center justify-center p-8">
+                <ModalLoader inline />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full overflow-hidden relative">

@@ -1,15 +1,7 @@
 {
   "projects": {
-    "default": "swarasutra"
+    "default": "zentis-f6d87"
   },
-  "targets": {
-    "lyricstudio-app": {
-      "hosting": {
-        "medisnap": [
-          "medisnap"
-        ]
-      }
-    }
-  },
+  "targets": {},
   "etags": {}
 }

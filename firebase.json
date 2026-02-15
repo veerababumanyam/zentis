@@ -1,10 +1,13 @@
 {
   "firestore": {
+    "database": "(default)",
+    "location": "nam5",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
     "public": "dist",
+    "site": "zentis",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -24,5 +27,13 @@
   },
   "dataconnect": {
     "source": "dataconnect"
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Zentis",
+        "supportEmail": "veerababumanyam@gmail.com"
+      }
+    }
   }
 }

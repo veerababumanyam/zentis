@@ -1,9 +1,9 @@
-# MediSnap AI Logo & Branding Implementation Summary
+# Zentis AI Logo & Branding Implementation Summary
 
 ## ✅ Completed Tasks
 
 ### 1. Generated All Required Icon Sizes
-Created optimized logo versions from `public/MediSnapLogo.png` (600×600):
+Created optimized logo versions from `public/ZentisLogo.png` (600×600):
 
 #### Favicons
 - ✅ `favicon.ico` - Multi-size ICO for browsers
@@ -139,7 +139,7 @@ Regenerates all icons and OG image in one command.
 
 ```
 public/
-├── MediSnapLogo.png (600×600) - Source
+├── ZentisLogo.png (600×600) - Source
 ├── favicon.ico
 ├── favicon-16x16.png
 ├── favicon-32x32.png
@@ -184,7 +184,7 @@ import { Logo } from './components/LogoImage';
 
 // With brand constants
 import { LOGO_PATHS, BRAND_COLORS } from './constants/branding';
-<img src={LOGO_PATHS.original} alt="MediSnap AI" />
+<img src={LOGO_PATHS.original} alt="Zentis AI" />
 <div style={{ backgroundColor: BRAND_COLORS.primary }}>...</div>
 ```
 
@@ -200,7 +200,7 @@ import { LOGO_PATHS, BRAND_COLORS } from './constants/branding';
 ## 🔧 Maintenance
 
 ### Updating the Logo
-1. Replace `public/MediSnapLogo.png` with new 600×600 version
+1. Replace `public/ZentisLogo.png` with new 600×600 version
 2. Run: `npm run generate:all-icons`
 3. Verify on multiple devices
 4. Test social media previews

@@ -10,32 +10,32 @@ interface LogoImageProps {
    * - 'original': 600px (uses original logo)
    */
   size?: 'small' | 'medium' | 'large' | 'original';
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
-  
+
   /**
-   * Alt text for the image (defaults to "MediSnap AI Logo")
+   * Alt text for the image (defaults to "Zentis AI Logo")
    */
   alt?: string;
-  
+
   /**
    * Width in pixels or CSS value
    */
   width?: number | string;
-  
+
   /**
    * Height in pixels or CSS value
    */
   height?: number | string;
-  
+
   /**
    * Whether to apply rounded corners
    */
   rounded?: boolean;
-  
+
   /**
    * Additional props to pass to the img element
    */
@@ -102,17 +102,17 @@ export const Logo = {
   Small: (props: Omit<LogoImageProps, 'size'>) => (
     <LogoImage size="small" width={48} height={48} {...props} />
   ),
-  
+
   /** Medium logo for headers and navigation (180px) */
   Medium: (props: Omit<LogoImageProps, 'size'>) => (
     <LogoImage size="medium" width={180} height={180} {...props} />
   ),
-  
+
   /** Large logo for landing pages and hero sections (512px) */
   Large: (props: Omit<LogoImageProps, 'size'>) => (
     <LogoImage size="large" width={512} height={512} {...props} />
   ),
-  
+
   /** Full resolution original logo */
   Original: (props: Omit<LogoImageProps, 'size'>) => (
     <LogoImage size="original" {...props} />

@@ -1,28 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users collection — each user can only read/write their own profile
+    // Allow users to read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Patients collection — authenticated users can read/write patients they manage.
-    // The managing user's list of patientIds is stored in their user profile (managedPatientIds).
-    // For now, any authenticated user can read/write patient docs.
-    // TODO: Tighten to check if patientId is in the user's managedPatientIds array.
-    match /patients/{patientId} {
-      allow read, write: if request.auth != null;
-
-      // Sub-collections: medications, labs, vitals, diagnoses, reports
-      match /{subcollection}/{docId} {
-        allow read, write: if request.auth != null;
-      }
-    }
-
-    // Default deny
+    
+    // Allow authenticated users to access other collections (modify as needed for finer grain)
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }

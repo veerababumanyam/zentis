@@ -6,7 +6,7 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider
 } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import type { UserProfile } from '../types';
 import { GoogleGenAI } from '@google/genai';
@@ -23,6 +23,7 @@ interface AuthContextType {
     updateGeminiApiKey: (key: string) => Promise<void>;
     validateApiKey: (key: string) => Promise<boolean>;
     clearAuthError: () => void;
+    switchRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,13 +72,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const provider = new GoogleAuthProvider();
         setAuthError(null); // Clear previous errors
         try {
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user profile exists
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (!userDocSnap.exists()) {
+                // Auto-create profile for new users
+                const newProfile: UserProfile = {
+                    uid: user.uid,
+                    email: user.email || '',
+                    displayName: user.displayName || 'User',
+                    photoURL: user.photoURL || '',
+                    role: 'doctor', // Default role as requested
+                    createdAt: Date.now(),
+                    geminiApiKey: ''
+                };
+
+                await setDoc(userDocRef, newProfile);
+                setUserProfile(newProfile);
+            } else {
+                // Existing user - fetch profile
+                await fetchUserProfile(user.uid);
+            }
+
         } catch (error: any) {
             console.error("Error signing in with Google:", error);
-            
+
             // Provide user-friendly error messages
             let errorMessage = 'Failed to sign in. Please try again.';
-            
+
             if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = 'Sign-in was cancelled. Please try again.';
             } else if (error.code === 'auth/popup-blocked') {
@@ -89,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else if (error.message) {
                 errorMessage = `Sign-in error: ${error.message}`;
             }
-            
+
             setAuthError(errorMessage);
             throw error;
         }
@@ -126,15 +152,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const ai = new GoogleGenAI({ apiKey: key });
             // A very cheap call — just list available models
-            await ai.models.list({ pageSize: 1 });
+            await ai.models.list();
             return true;
         } catch {
             return false;
         }
     };
 
+    const switchRole = async () => {
+        if (!user || !userProfile) return;
+        const newRole = userProfile.role === 'doctor' ? 'patient' : 'doctor';
+        await updateDoc(doc(db, 'users', user.uid), { role: newRole });
+        setUserProfile(prev => prev ? { ...prev, role: newRole } : prev);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, userProfile, loading, authError, signInWithGoogle, logout, refreshProfile, updateGeminiApiKey, validateApiKey, clearAuthError }}>
+        <AuthContext.Provider value={{ user, userProfile, loading, authError, signInWithGoogle, logout, refreshProfile, updateGeminiApiKey, validateApiKey, clearAuthError, switchRole }}>
             {children}
         </AuthContext.Provider>
     );

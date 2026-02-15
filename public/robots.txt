@@ -1,5 +1,5 @@
-# MediSnap AI - Robots.txt
-# https://medisnapai.com/
+# Zentis AI - Robots.txt
+# https://Zentisai.com/
 
 # Allow all major search engine crawlers
 User-agent: *
@@ -36,4 +36,4 @@ User-agent: Twitterbot
 Allow: /
 
 # Sitemap location
-Sitemap: https://medisnapai.com/sitemap.xml
+Sitemap: https://Zentisai.com/sitemap.xml

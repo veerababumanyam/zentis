@@ -155,7 +155,7 @@ export const LiveAssistant: React.FC = () => {
   }, []);
 
   const getSystemInstruction = () => {
-    const baseInstruction = `You are CardioSnap Live, an advanced multimodal medical AI assistant.
+    const baseInstruction = `You are Zentis Live, an advanced multimodal medical AI assistant.
       
       **Patient Profile:**
       - Name: ${patient?.name} (${patient?.age}, ${patient?.gender})

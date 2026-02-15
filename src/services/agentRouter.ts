@@ -51,15 +51,51 @@ const determineSpecialty = async (query: string, ai: GoogleGenAI): Promise<strin
 /**
  * Routes a user query to the appropriate AI agent.
  */
-import { sendMessageToBackend } from './backendAgent';
+import { runMultiSpecialistReviewAgent } from './agents/multiAgentSimulation';
 
-/**
- * Routes a user query to the appropriate AI agent.
- */
 export const agentRouter = async (query: string, patient: Patient, aiSettings: AiPersonalizationSettings): Promise<Message> => {
-    // We now route everything to the Backend ADK Agent.
-    // The backend agent handles specialty routing via tools using the patient context we pass.
+    // Client-Side Routing (Serverless Mode)
 
-    console.log(`[AgentRouter] Forwarding query to Backend ADK Agent: "${query}"`);
-    return await sendMessageToBackend(query, patient);
+    if (!aiSettings.apiKey) {
+        return {
+            id: Date.now(),
+            sender: 'ai',
+            type: 'text',
+            text: "Please provide your Gemini API Key in the settings to use the AI features."
+        };
+    }
+
+    // Initialize client correctly
+    const ai = new GoogleGenAI({ apiKey: aiSettings.apiKey });
+
+    // Check for "Board Review" or complex queries to trigger the Multi-Agent System
+    if (query.toLowerCase().includes('board') || query.toLowerCase().includes('consult') || query.toLowerCase().includes('review')) {
+        console.log(`[AgentRouter] Triggering Multi-Agent Board Review`);
+        return await runMultiSpecialistReviewAgent(patient, ai);
+    }
+
+    try {
+        // Use the new @google/genai SDK syntax consistently
+        const prompt = `System: You are a helpful medical assistant. Context: Patient ${patient.name}, ${patient.age}y/o.\nUser: ${query}`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.0-flash-exp',
+            contents: prompt
+        });
+
+        return {
+            id: Date.now(),
+            sender: 'ai',
+            type: 'text',
+            text: response.text ? response.text : "No response generated."
+        };
+    } catch (error) {
+        console.error("AI Error:", error);
+        return {
+            id: Date.now(),
+            sender: 'ai',
+            type: 'text',
+            text: "I'm having trouble connecting to the AI. Please check your API key and connection."
+        };
+    }
 };

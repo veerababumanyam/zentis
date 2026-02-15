@@ -2,12 +2,12 @@ import { queryRef, executeQuery, validateArgs } from 'firebase/data-connect';
 
 export const connectorConfig = {
   connector: 'example',
-  service: 'mediasnap',
+  service: 'Zentis',
   location: 'us-east4'
 };
 
 export const listUsersRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  const { dc: dcInstance } = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'ListUsers');
 }
@@ -18,7 +18,7 @@ export function listUsers(dc) {
 }
 
 export const listPatientsRef = (dc) => {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  const { dc: dcInstance } = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'ListPatients');
 }
@@ -29,7 +29,7 @@ export function listPatients(dc) {
 }
 
 export const getReportRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
   return queryRef(dcInstance, 'GetReport', inputVars);
 }

@@ -16,11 +16,11 @@
 - Create: (worktree directory)
 
 **Step 1: Create a worktree**
-Run: `git worktree add ../medisnap-role-cleanup -b role-cleanup`
+Run: `git worktree add ../Zentis-role-cleanup -b role-cleanup`
 Expected: New worktree directory created.
 
 **Step 2: Switch to worktree**
-Run: `cd ../medisnap-role-cleanup`
+Run: `cd ../Zentis-role-cleanup`
 Expected: Working directory changes to new worktree.
 
 **Step 3: Commit (no code changes yet)**

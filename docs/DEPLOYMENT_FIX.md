@@ -7,7 +7,7 @@ The sign-in/sign-up functionality appeared to "auto-close" in production because
 ### What Was Fixed
 
 1. **Firebase Project Configuration** (`.firebaserc`)
-   - Added missing default project: `swarasutra`
+   - Added missing default project: `Zentis`
    - Ensures Firebase CLI knows which project to deploy to
 
 2. **Error Handling & User Feedback** (`AuthContext.tsx`, `LandingPage.tsx`)
@@ -37,9 +37,9 @@ Copy credentials from `.env.local` to `.env` (if safe to commit), or create prod
 ```bash
 # .env.production
 VITE_FIREBASE_API_KEY=AIzaSyCV6QFZzqad9KeEeaC6UkofOAzKSHlUXok
-VITE_FIREBASE_AUTH_DOMAIN=swarasutra.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=swarasutra
-VITE_FIREBASE_STORAGE_BUCKET=swarasutra.firebasestorage.app
+VITE_FIREBASE_AUTH_DOMAIN=Zentis.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=Zentis
+VITE_FIREBASE_STORAGE_BUCKET=Zentis.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
 VITE_FIREBASE_APP_ID=<your-app-id>
 ```
@@ -52,12 +52,12 @@ VITE_FIREBASE_APP_ID=<your-app-id>
 #### Step 2: Verify Firebase Project Settings
 
 1. Open [Firebase Console](https://console.firebase.google.com/)
-2. Select your project: **swarasutra**
+2. Select your project: **Zentis**
 3. Navigate to **Authentication → Sign-in method**
 4. Ensure **Google** provider is **enabled**
 5. Check **Authorized domains**:
-   - Add `swarasutra.firebaseapp.com`
-   - Add `swarasutra.web.app`
+   - Add `Zentis.firebaseapp.com`
+   - Add `Zentis.web.app`
    - Add any custom domains
 
 #### Step 3: Build and Deploy
@@ -73,7 +73,7 @@ npm run build
 firebase deploy --only hosting
 
 # Or deploy specific target
-firebase deploy --only hosting:medisnap
+firebase deploy --only hosting:Zentis
 ```
 
 ---
@@ -134,7 +134,7 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           channelId: live
-          projectId: swarasutra
+          projectId: Zentis
 ```
 
 ---
@@ -227,9 +227,9 @@ For local development, keep using `.env.local`:
 ```bash
 # .env.local (gitignored, safe for secrets)
 VITE_FIREBASE_API_KEY=AIzaSyCV6QFZzqad9KeEeaC6UkofOAzKSHlUXok
-VITE_FIREBASE_AUTH_DOMAIN=swarasutra.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=swarasutra
-VITE_FIREBASE_STORAGE_BUCKET=swarasutra.firebasestorage.app
+VITE_FIREBASE_AUTH_DOMAIN=Zentis.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=Zentis
+VITE_FIREBASE_STORAGE_BUCKET=Zentis.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
 VITE_FIREBASE_APP_ID=<your-app-id>
 
@@ -251,7 +251,7 @@ npm run dev
 
 | File | Changes |
 |------|---------|
-| `.firebaserc` | Added `"default": "swarasutra"` to projects |
+| `.firebaserc` | Added `"default": "Zentis"` to projects |
 | `src/contexts/AuthContext.tsx` | Added `authError` state, user-friendly error messages, `clearAuthError` function |
 | `src/services/firebase.ts` | Added environment variable validation on initialization |
 | `src/components/LandingPage.tsx` | Added error banner UI, `handleSignIn` wrapper, `useAuth` hook |

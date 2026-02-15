@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generate all required icon sizes from the MediSnap logo
+ * Generate all required icon sizes from the Zentis logo
  * Requires: npm install sharp
  */
 
@@ -9,7 +9,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-const SOURCE_LOGO = 'public/MediSnapLogo.png';
+const SOURCE_LOGO = 'public/ZentisLogo.png';
 const PUBLIC_DIR = 'public';
 
 // Icon sizes needed for various platforms
@@ -25,7 +25,7 @@ const ICON_SIZES = [
 ];
 
 async function generateIcons() {
-  console.log('🎨 Generating MediSnap icons...\n');
+  console.log('🎨 Generating Zentis icons...\n');
 
   try {
     // Read the source image
@@ -49,12 +49,12 @@ async function generateIcons() {
 
     // Generate favicon.ico (multi-size ICO file)
     console.log('\n🔧 Generating favicon.ico...');
-    
+
     // For favicon.ico, we'll create separate 16x16, 32x32, and 48x48 PNGs
     // and then combine them (ICO creation requires additional library)
     const icoSizes = [16, 32, 48];
     const icoBuffers = [];
-    
+
     for (const size of icoSizes) {
       const buffer = await sourceImage
         .clone()
@@ -66,7 +66,7 @@ async function generateIcons() {
         .toBuffer();
       icoBuffers.push(buffer);
     }
-    
+
     // Note: For true .ico file, you'd need png-to-ico or similar
     // For now, we'll use the 32x32 as favicon.ico
     await sourceImage
@@ -77,14 +77,14 @@ async function generateIcons() {
       })
       .png()
       .toFile(join(PUBLIC_DIR, 'favicon.ico'));
-    
+
     console.log('✅ Generated: favicon.ico');
 
     // Generate web app manifest
     console.log('\n📱 Generating web app manifest...');
     const manifest = {
-      name: "MediSnap AI",
-      short_name: "MediSnap",
+      name: "Zentis AI",
+      short_name: "Zentis",
       description: "AI-Powered Clinical Intelligence Platform",
       start_url: "/",
       display: "standalone",

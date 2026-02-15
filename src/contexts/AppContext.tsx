@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import type { AppState, Action } from './reducer';
 import type { Patient, Message, TextMessage, Report, UploadableFile, Feedback, AiModel, ToastNotification, ClinicalDebateMessage, MultiSpecialistReviewMessage, ClinicalTask } from '../types';
 import { appReducer, initialState } from './reducer';
-import { fetchPatients, updatePatient, addReportMetadata, saveExtractedData } from '../services/ehrService';
+import { fetchPatients, updatePatient, addReportMetadata, saveExtractedData, createPatient } from '../services/ehrService';
 import * as apiManager from '../services/apiManager';
 import { uploadReportAttachment } from '../services/storageService'; // NEW
 import { getNextQuestions } from '../services/clinicalPathwaysService';
@@ -86,8 +86,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
             const savedChats = localStorage.getItem('chatHistories');
             const savedQs = localStorage.getItem('questionHistories');
-            const savedFeedback = localStorage.getItem('cardioSnap_feedbackHistory');
-            const savedSettings = localStorage.getItem('cardioSnap_aiSettings');
+            const savedFeedback = localStorage.getItem('zentis_feedbackHistory');
+            const savedSettings = localStorage.getItem('zentis_aiSettings');
             return {
                 ...init,
                 chatHistories: savedChats ? JSON.parse(savedChats) : {},
@@ -118,13 +118,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
 
             try {
-                const patients = await fetchPatients(user.uid);
-                // If patients found, select the first one OR if the user IS the patient, select them.
-                if (patients.length > 0) {
+                let patients = await fetchPatients(user.uid);
+
+                // If user is a patient, inject themselves into the list and select
+                if (userProfile?.role === 'patient') {
+                    const selfAsPatient: Patient = {
+                        id: user.uid,
+                        name: userProfile.displayName || 'Me',
+                        age: (userProfile as any).age || 0,
+                        gender: (userProfile as any).gender || 'Female',
+                        weight: 70,
+                        allergies: (userProfile as any).allergies || [],
+                        medicalHistory: (userProfile as any).medicalHistory || [],
+                        appointmentTime: '09:00',
+                        currentStatus: (userProfile as any).currentStatus || {
+                            condition: 'Wellness Check',
+                            vitals: '',
+                            medications: []
+                        },
+                        reports: (userProfile as any).reports || []
+                    };
+
+                    if (!patients.find(p => p.id === user.uid)) {
+                        patients = [selfAsPatient, ...patients];
+                    }
+
                     dispatch({ type: 'SET_PATIENTS', payload: patients });
-                    // Default selection:
-                    // If we have a selectedPatientId in state that is valid, keep it? 
-                    // For now, just select the first one to be safe on load.
+                    dispatch({ type: 'SELECT_PATIENT', payload: user.uid });
+                } else if (patients.length > 0) {
+                    dispatch({ type: 'SET_PATIENTS', payload: patients });
                     if (!selectedPatientId || !patients.find(p => p.id === selectedPatientId)) {
                         dispatch({ type: 'SELECT_PATIENT', payload: patients[0].id });
                     }
@@ -134,6 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             } catch (error) {
                 console.error("Failed to fetch user profile:", error);
                 showToast("Failed to load health profile.", 'error');
+            } finally {
                 dispatch({ type: 'SET_APP_LOADING', payload: false });
             }
         };
@@ -166,11 +189,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [questionHistories]);
 
     useEffect(() => {
-        localStorage.setItem('cardioSnap_feedbackHistory', JSON.stringify(feedbackHistory));
+        localStorage.setItem('zentis_feedbackHistory', JSON.stringify(feedbackHistory));
     }, [feedbackHistory]);
 
     useEffect(() => {
-        localStorage.setItem('cardioSnap_aiSettings', JSON.stringify(aiSettings));
+        localStorage.setItem('zentis_aiSettings', JSON.stringify(aiSettings));
     }, [aiSettings]);
 
     const selectedPatient = useMemo(() => allPatients.find(p => p.id === selectedPatientId) || null, [allPatients, selectedPatientId]);
@@ -334,10 +357,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'UPDATE_PATIENT_DATA', payload: updated });
     }, [allPatients, showToast]);
 
-    const handleCreateAndAnalyze = useCallback(async (data: any) => {
-        dispatch({ type: 'TOGGLE_CONSULTATION_MODAL' });
-        showToast("New profile created.", "success");
-    }, [showToast]);
+
 
     const handleSendMessage = useCallback(async (query: string, files: File[] = [], targetPatientId?: string) => {
         const patientIdToUse = targetPatientId || selectedPatientId;
@@ -403,6 +423,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dispatch({ type: 'SET_CHAT_LOADING', payload: false });
         }
     }, [selectedPatientId, allPatients, aiSettings, showToast]);
+
+    const handleCreateAndAnalyze = useCallback(async (data: any) => {
+        if (!user) return;
+
+        try {
+            dispatch({ type: 'TOGGLE_CONSULTATION_MODAL' });
+            showToast("Creating patient profile...", "info");
+
+            // 1. Create Patient
+            const newPatientData: Partial<Patient> = {
+                name: data.patientName,
+                age: data.age,
+                gender: data.gender,
+                currentStatus: {
+                    condition: 'New Consultation',
+                    vitals: '',
+                    medications: []
+                },
+                reports: [],
+                notes: data.prompt
+            };
+
+            const newPatientId = await createPatient(user.uid, newPatientData);
+
+            // 2. Refresh Patient List
+            const updatedPatients = await fetchPatients(user.uid);
+            dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+            dispatch({ type: 'SELECT_PATIENT', payload: newPatientId });
+
+            // 3. Handle Files and Analysis
+            if (data.files && data.files.length > 0) {
+                // Trigger message sending with files
+                // We need to wait a bit for the state to update or pass the patient object directly
+                const newPatient = updatedPatients.find(p => p.id === newPatientId);
+                if (newPatient) {
+                    // We use a slight delay to ensure UI transition is smooth
+                    setTimeout(() => {
+                        handleSendMessage(data.prompt || "Analyze these documents.", data.files, newPatientId);
+                    }, 500);
+                }
+            } else if (data.prompt) {
+                setTimeout(() => {
+                    handleSendMessage(data.prompt, [], newPatientId);
+                }, 500);
+            }
+
+            showToast("Patient created successfully.", "success");
+
+        } catch (error) {
+            console.error("Error creating patient:", error);
+            showToast("Failed to create patient.", "error");
+        }
+    }, [user, showToast, dispatch, handleSendMessage]);
 
     const handleAnalyzeReports = useCallback(async (reportIds: string[]) => {
         if (!selectedPatient) return;

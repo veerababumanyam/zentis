@@ -1,20 +1,20 @@
 
-# MediSnap AI: Next Gen Healthcare Assistant
+# Zentis: Next Gen Healthcare Assistant
 
 **The Future of Health is Conversational.**
 
-MediSnap AI is a conversational co-pilot that instantly transforms complex patient data into actionable clinical insights at the point of care. It revolutionizes healthcare workflows through intelligent patient data summarization, multi-modal biomarker detection, and a conversational interface, enabling clinicians to interact naturally with comprehensive patient records.
+Zentis is a conversational co-pilot that instantly transforms complex patient data into actionable clinical insights at the point of care. It revolutionizes healthcare workflows through intelligent patient data summarization, multi-modal biomarker detection, and a conversational interface, enabling clinicians to interact naturally with comprehensive patient records.
 
 ---
 
 ## Tech Stack
 
 -   **Frontend:** React 19, TypeScript, Tailwind CSS
+-   **Backend & Infrastructure:** Firebase (Auth, Firestore, Hosting)
 -   **AI & Generative UI:** Google Gemini API (`@google/genai`)
     -   *Models:* `gemini-2.5-flash` (Speed), `gemini-3-pro-preview` (Deep Reasoning/Vision), `gemini-2.5-flash-native-audio-preview` (Live)
 -   **State Management:** React Hooks (Context API)
--   **Data Persistence:** Browser's IndexedDB for patient records and LocalStorage for user preferences.
--   **Build:** Vite (npm run dev / npm run build)
+-   **Build:** Vite (npm run build)
 
 ## Project Structure
 
@@ -33,37 +33,36 @@ MediSnap AI is a conversational co-pilot that instantly transforms complex patie
 ### Prerequisites
 
 -   A modern web browser (Chrome, Edge, Safari).
--   A local web server (e.g., VS Code Live Server).
+-   Node.js and npm installed.
+-   Firebase CLI installed (`npm install -g firebase-tools`).
 -   A valid Google Gemini API key.
 
-### Configuration
+### Configuration & Deployment
 
-1.  Open `index.html`.
-2.  Locate the `<script>` tag defining `window.process`.
-3.  Replace `'YOUR_GEMINI_API_KEY_HERE'` with your actual API key.
+1.  **Initialize Environment:**
+    Ensure your `.env.local` contains the Zentis Firebase credentials.
 
-```html
-<script>
-  window.process = {
-    env: {
-      API_KEY: 'YOUR_GEMINI_API_KEY_HERE'
-    }
-  };
-</script>
-```
+2.  **Build the Project:**
+    ```bash
+    npm run build
+    ```
 
-### Running the Application
+3.  **Deploy to Firebase:**
+    ```bash
+    firebase deploy
+    ```
 
-1.  Clone the project.
-2.  Serve the directory using a local web server (e.g., `python -m http.server`).
-3.  Navigate to `http://localhost:8000`.
+4.  **Local Development:**
+    ```bash
+    npm run dev
+    ```
 
 ---
 
 ## Key Features
 
 ### 1. Comprehensive Medical Intelligence
-MediSnap goes beyond general medicine with a unified ecosystem of specialized AI agents, each trained on domain-specific guidelines:
+Zentis goes beyond general medicine with a unified ecosystem of specialized AI agents, each trained on domain-specific guidelines:
 - **Cardiology:** Interventional (SYNTAX), EP (Device Interrogation), Advanced HF (LVAD), CTA (CAD-RADS).
 - **Neurology:** Stroke protocols, MRI brain analysis, seizure management.
 - **Oncology:** TNM staging, biomarker analysis, treatment protocols.

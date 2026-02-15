@@ -7,7 +7,7 @@
 import sharp from 'sharp';
 import { join } from 'path';
 
-const SOURCE_LOGO = 'public/MediSnapLogo.png';
+const SOURCE_LOGO = 'public/ZentisLogo.png';
 const PUBLIC_DIR = 'public';
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
@@ -19,7 +19,7 @@ async function generateOGImage() {
     // Read the source logo
     const logo = sharp(SOURCE_LOGO);
     const logoMetadata = await logo.metadata();
-    
+
     // Calculate logo size (centered, taking up about 40% of height)
     const logoHeight = Math.floor(OG_HEIGHT * 0.4);
     const logoWidth = logoHeight; // Keep square aspect ratio
@@ -36,7 +36,7 @@ async function generateOGImage() {
     // Define the brand color gradient background
     const brandBlue = '#2563eb';
     const brandDarkBlue = '#1e40af';
-    
+
     // Create SVG background with gradient and text
     const svgBackground = `
       <svg width="${OG_WIDTH}" height="${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -60,7 +60,7 @@ async function generateOGImage() {
           font-size="72" 
           font-weight="bold" 
           fill="white" 
-          text-anchor="middle">MediSnap AI</text>
+          text-anchor="middle">Zentis AI</text>
         <text 
           x="${OG_WIDTH / 2}" 
           y="${OG_HEIGHT * 0.85}" 
@@ -73,7 +73,7 @@ async function generateOGImage() {
 
     // Compose the final image
     const outputPath = join(PUBLIC_DIR, 'og-image.png');
-    
+
     await sharp(Buffer.from(svgBackground))
       .composite([
         {

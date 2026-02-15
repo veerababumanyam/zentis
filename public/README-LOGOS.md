@@ -1,11 +1,11 @@
-# MediSnap AI Brand Assets
+# Zentis AI Brand Assets
 
-This directory contains all logo variations, favicons, and brand assets for MediSnap AI.
+This directory contains all logo variations, favicons, and brand assets for Zentis AI.
 
 ## 📁 Logo Files
 
 ### Main Logo
-- **MediSnapLogo.png** (600×600) - Original high-resolution logo
+- **ZentisLogo.png** (600×600) - Original high-resolution logo
 
 ### Favicons
 - **favicon.ico** - Multi-size ICO file for browsers
@@ -70,7 +70,7 @@ import { Logo, LogoImage } from './components/LogoImage';
 ```tsx
 import { LOGO_PATHS } from './constants/branding';
 
-<img src={LOGO_PATHS.original} alt="MediSnap AI" />
+<img src={LOGO_PATHS.original} alt="Zentis AI" />
 ```
 
 ## 🔄 Regenerating Icons
@@ -138,7 +138,7 @@ All icon sizes and metadata are properly configured in `index.html`:
 
 | File | Size |
 |------|------|
-| MediSnapLogo.png | ~473 KB |
+| ZentisLogo.png | ~473 KB |
 | android-chrome-512x512.png | ~445 KB |
 | og-image.png | ~XXX KB |
 | android-chrome-192x192.png | ~69 KB |
@@ -160,14 +160,14 @@ All icon sizes and metadata are properly configured in `index.html`:
 ## 🛠️ Maintenance
 
 When updating the logo:
-1. Replace `public/MediSnapLogo.png` with the new 600×600 version
+1. Replace `public/ZentisLogo.png` with the new 600×600 version
 2. Run `npm run generate:all-icons` to regenerate all sizes
 3. Test the application on multiple devices
 4. Verify social media previews on Facebook, Twitter, LinkedIn
 
 ## 📝 Notes
 
-- All icons are generated from `MediSnapLogo.png` to ensure consistency
+- All icons are generated from `ZentisLogo.png` to ensure consistency
 - Icons use transparent backgrounds for flexibility
 - PWA manifest enables "Add to Home Screen" functionality
 - OG image uses brand colors and includes logo + text for maximum impact

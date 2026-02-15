@@ -257,7 +257,38 @@ export const updatePatient = async (patient: Patient): Promise<void> => {
     // but we support hybrid for now.
     await setDoc(doc(db, PATIENTS_COLLECTION, patient.id), patient, { merge: true });
   } catch (error) {
-    console.error("Error updating patient:", error);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new patient and links it to the current user's profile.
+ */
+export const createPatient = async (userId: string, patientData: Partial<Patient>): Promise<string> => {
+  try {
+    // 1. Create Patient Document
+    const patientRef = await addDoc(collection(db, PATIENTS_COLLECTION), {
+      ...patientData,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+
+    const patientId = patientRef.id;
+
+    // 2. Link to User Profile
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const currentIds = userSnap.data().managedPatientIds || [];
+      await updateDoc(userRef, {
+        managedPatientIds: [...currentIds, patientId]
+      });
+    }
+
+    return patientId;
+  } catch (error) {
+    console.error("Error creating patient:", error);
     throw error;
   }
 };

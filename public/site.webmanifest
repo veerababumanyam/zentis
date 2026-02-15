@@ -1,6 +1,6 @@
 {
-  "name": "MediSnap AI",
-  "short_name": "MediSnap",
+  "name": "Zentis Medical AI",
+  "short_name": "Zentis",
   "description": "AI-Powered Clinical Intelligence Platform",
   "start_url": "/",
   "display": "standalone",

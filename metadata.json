@@ -1,0 +1,9 @@
+
+{
+  "name": "CardioSnapV2",
+  "description": "An AI-powered platform that revolutionizes healthcare workflows through intelligent patient data summarization and a conversational interface, enabling doctors to interact naturally with patient data.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

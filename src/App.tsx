@@ -16,6 +16,7 @@ import { LandingPage } from './components/LandingPage';
 import { OnboardingPage } from './components/OnboardingPage';
 import { ArchitectProfile } from './components/ArchitectProfile';
 import { ApiKeyMissingBanner } from './components/ApiKeyMissingBanner';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { useAuth } from './contexts/AuthContext';
 
 /** Simple hash-based route hook for public pages */
@@ -119,7 +120,13 @@ const App: React.FC = () => {
                             <ToastContainer />
 
                             {/* Left Sidebar - Personal Health Record or Patient List */}
-                            <aside className={`h-full md:relative absolute inset-0 z-20 flex flex-col flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:translate-x-0 ${isPatientListCollapsed ? 'md:w-20' : 'md:w-80'} glass-panel border-r border-white/20 dark:border-white/10`}>
+                            <aside className={`
+                                h-full md:relative absolute inset-0 z-20 flex flex-col flex-shrink-0 
+                                transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) 
+                                ${isPatientListCollapsed ? 'md:w-20' : 'md:w-80'} 
+                                glass-panel border-r border-white/20 dark:border-white/10
+                                ${state.mobileView === 'chat' && selectedPatient ? 'hidden md:flex' : 'flex'}
+                            `}>
                                 <div className="flex-1 flex flex-col min-h-0">
                                     {userProfile?.role === 'patient' || selectedPatient ? (
                                         <HealthRecordSidebar
@@ -202,6 +209,7 @@ const App: React.FC = () => {
                             <PatientSettingsModal />
                         </>
                     </div>
+                    <PWAInstallPrompt />
                 </div>
 
             </div>

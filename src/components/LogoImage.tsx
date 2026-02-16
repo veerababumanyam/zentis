@@ -40,6 +40,11 @@ interface LogoImageProps {
    * Additional props to pass to the img element
    */
   imgProps?: React.ImgHTMLAttributes<HTMLImageElement>;
+
+  /**
+   * Inline styles
+   */
+  style?: React.CSSProperties;
 }
 
 /**
@@ -53,7 +58,8 @@ export const LogoImage: React.FC<LogoImageProps> = ({
   width,
   height,
   rounded = false,
-  imgProps = {},
+  imgProps,
+  style: styleProp,
 }) => {
   // Select the appropriate logo path based on size
   const getLogoPath = () => {
@@ -77,9 +83,10 @@ export const LogoImage: React.FC<LogoImageProps> = ({
   ].filter(Boolean).join(' ');
 
   // Build style object
-  const style: React.CSSProperties = {
+  const finalStyle: React.CSSProperties = {
     width: width || undefined,
     height: height || undefined,
+    ...styleProp,
     ...(imgProps?.style || {}),
   };
 
@@ -88,7 +95,7 @@ export const LogoImage: React.FC<LogoImageProps> = ({
       src={getLogoPath()}
       alt={alt}
       className={classNames}
-      style={style}
+      style={finalStyle}
       {...imgProps}
     />
   );

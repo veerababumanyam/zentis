@@ -4,118 +4,43 @@ import { useAppContext } from '../contexts/AppContext';
 import { SidebarRightIcon } from './icons/SidebarRightIcon';
 import { HeartPulseIcon } from './icons/HeartPulseIcon';
 import { BeakerIcon } from './icons/BeakerIcon';
-import { EcgWaveformIcon } from './icons/EcgWaveformIcon';
 import { PillIcon } from './icons/PillIcon';
 import { ActivityIcon } from './icons/ActivityIcon';
 import { ClipboardListIcon } from './icons/ClipboardListIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { PlusCircleIcon } from './icons/PlusCircleIcon';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
-import { extractMedicationEvents } from '../utils';
-import { SettingsIcon } from './icons/SettingsIcon'; // NEW
-import type { Report, Patient, MedicationEvent, ClinicalTask } from '../types';
+import { SettingsIcon } from './icons/SettingsIcon';
+import { AlertCircleIcon } from './icons/AlertCircleIcon';
+import { DocumentIcon } from './icons/DocumentIcon';
+import { aggregateClinicalData } from '../utils/clinicalDataAggregator';
+import type { ClinicalSnapshotData, VitalGroup, LabGroup } from '../utils/clinicalDataAggregator';
+import type { ClinicalTask } from '../types';
+import type { MedicationDocument, DiagnosisDocument } from '../services/databaseSchema';
 
-// Helper to get text content from a report
-const getReportContent = (report: Report | undefined): string => {
-    if (!report) return '';
-    if (typeof report.content === 'string') return report.content;
-    if (typeof report.content === 'object' && 'rawText' in report.content) return (report.content as any).rawText;
-    return '';
-};
+// --- REUSABLE SUB-COMPONENTS ---
 
-// --- DATA EXTRACTION HELPERS ---
-
-const extractEchoData = (patient: Patient) => {
-    const echoReport = patient.reports
-        .filter(r => r.type === 'Echo')
-        .sort((a, b) => b.date.localeCompare(a.date))[0];
-
-    if (!echoReport) return { lvef: 'N/A', date: null };
-
-    const content = getReportContent(echoReport);
-    const lvefMatch = content.match(/LVEF\)?:\s*(\d+)%?/i);
-    const lvef = lvefMatch ? `${lvefMatch[1]}%` : 'N/A';
-
-    return { lvef, date: echoReport.date };
-};
-
-const extractLabData = (patient: Patient) => {
-    const labReport = patient.reports
-        .filter(r => r.type === 'Lab' && getReportContent(r))
-        .sort((a, b) => b.date.localeCompare(a.date))[0];
-
-    if (!labReport) return { creatinine: 'N/A', potassium: 'N/A', egfr: 'N/A', date: null };
-
-    const content = getReportContent(labReport);
-    const crMatch = content.match(/Creatinine:\s*(\d+(\.\d+)?)/i);
-    const kMatch = content.match(/Potassium:\s*(\d+(\.\d+)?)/i);
-    const egfrMatch = content.match(/eGFR:\s*(\d+(\.\d+)?)/i);
-
-    return {
-        creatinine: crMatch ? crMatch[1] : 'N/A',
-        potassium: kMatch ? kMatch[1] : 'N/A',
-        egfr: egfrMatch ? egfrMatch[1] : 'N/A',
-        date: labReport.date
-    };
-};
-
-const extractRhythm = (patient: Patient) => {
-    // Prefer Holter, then ECG
-    const ecgReports = patient.reports
-        .filter(r => r.type === 'ECG')
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-    const latestEcg = ecgReports[0];
-    if (!latestEcg) return { rhythm: 'Unknown', date: null };
-
-    const content = getReportContent(latestEcg);
-    // Simple heuristic for rhythm extraction
-    let rhythm = 'See Report';
-    if (content.match(/Sinus Rhythm/i)) rhythm = 'Sinus Rhythm';
-    else if (content.match(/Atrial Fibrillation/i)) rhythm = 'Atrial Fibrillation';
-    else if (content.match(/Paced/i)) rhythm = 'Paced Rhythm';
-    else {
-        const rhythmMatch = content.match(/Rhythm:\s*([^\n]+)/i);
-        if (rhythmMatch) rhythm = rhythmMatch[1].substring(0, 20) + (rhythmMatch[1].length > 20 ? '...' : '');
-    }
-
-    return { rhythm, date: latestEcg.date };
-};
-
-const extractAnticoagulation = (patient: Patient) => {
-    const meds = patient.currentStatus.medications.map(m => m.toLowerCase());
-    const doacs = ['apixaban', 'rivaroxaban', 'dabigatran', 'edoxaban', 'eliquis', 'xarelto'];
-    const warfarin = ['warfarin', 'coumadin', 'jantoven'];
-
-    let status = 'None';
-    if (meds.some(m => doacs.some(d => m.includes(d)))) status = 'DOAC';
-    else if (meds.some(m => warfarin.some(w => m.includes(w)))) status = 'Warfarin';
-    else if (meds.some(m => m.includes('aspirin') && m.includes('clopidogrel'))) status = 'DAPT';
-    else if (meds.some(m => m.includes('aspirin'))) status = 'Aspirin';
-
-    // Quick CHA2DS2-VASc Calc (Approximation)
-    let score = 0;
-    const hx = patient.medicalHistory.map(h => h.description.toLowerCase()).join(' ');
-    if (hx.includes('heart failure') || hx.includes('hfref') || hx.includes('hfpef')) score++;
-    if (hx.includes('hypertension')) score++;
-    if (patient.age >= 75) score += 2;
-    if (hx.includes('diabetes')) score++;
-    if (hx.includes('stroke') || hx.includes('tia')) score += 2;
-    if (hx.includes('vascular') || hx.includes('cad') || hx.includes('pad') || hx.includes('mi')) score++;
-    if (patient.age >= 65 && patient.age < 75) score++;
-    if (patient.gender === 'Female') score++;
-
-    return { status, score };
-};
-
-const DashboardCard: React.FC<{ title: string, icon: React.ReactNode, children: React.ReactNode, date?: string | null }> = ({ title, icon, children, date }) => (
+const DashboardCard: React.FC<{
+    title: string;
+    icon: React.ReactNode;
+    children: React.ReactNode;
+    date?: string | null;
+    badge?: string | null;
+}> = ({ title, icon, children, date, badge }) => (
     <div className="glass-card rounded-2xl p-4 transition-all hover:scale-[1.01] hover:shadow-lg">
         <div className="flex items-center justify-between mb-3 border-b border-gray-200/50 dark:border-gray-700/50 pb-2">
             <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
                 {icon}
                 <span className="text-xs font-bold uppercase tracking-wider">{title}</span>
+                {badge && (
+                    <span className="ml-1 px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{badge}</span>
+                )}
             </div>
-            {date && <span className="text-[10px] text-gray-400 font-mono" title={`Data from ${date}`}>{new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
+            {date && (
+                <span className="text-[10px] text-gray-400 font-mono" title={`Data from ${date}`}>
+                    {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+            )}
         </div>
         <div className="space-y-2">
             {children}
@@ -123,47 +48,209 @@ const DashboardCard: React.FC<{ title: string, icon: React.ReactNode, children: 
     </div>
 );
 
-const DataRow: React.FC<{ label: string, value: string, unit?: string, highlight?: boolean }> = ({ label, value, unit, highlight }) => (
+const DataRow: React.FC<{
+    label: string;
+    value: string;
+    unit?: string;
+    highlight?: boolean;
+    subtext?: string;
+}> = ({ label, value, unit, highlight, subtext }) => (
     <div className="flex justify-between items-baseline group" title={`${label}: ${value} ${unit || ''}`}>
-        <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">{label}</span>
-        <span className={`text-sm font-semibold tracking-tight ${highlight ? 'text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-gray-200'}`}>
+        <div className="flex flex-col">
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">{label}</span>
+            {subtext && <span className="text-[9px] text-gray-400 dark:text-gray-500">{subtext}</span>}
+        </div>
+        <span className={`text-sm font-semibold tracking-tight ${highlight ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-200'}`}>
             {value} {unit && <span className="text-xs text-gray-400 font-normal ml-0.5">{unit}</span>}
         </span>
     </div>
 );
 
-const TimelineView: React.FC<{ events: MedicationEvent[] }> = ({ events }) => {
-    // Take top 5 most recent events reversed (newest at top)
-    const recentEvents = [...events].reverse().slice(0, 5);
+/** Formats BP as "120/80" or a single vital value */
+const formatVitalValue = (v: VitalGroup): string => {
+    if (v.type === 'BP' && v.value2 != null) return `${v.value}/${v.value2}`;
+    return String(v.value);
+};
 
-    if (recentEvents.length === 0) return <p className="text-xs text-gray-400 italic p-4 text-center">No recent major events recorded.</p>;
+// --- VITALS HERO CARD ---
+
+const VitalsHeroCard: React.FC<{ vitals: VitalGroup[] }> = ({ vitals }) => {
+    const bp = vitals.find(v => v.type === 'BP');
+    const hr = vitals.find(v => v.type === 'HR');
+    const spo2 = vitals.find(v => v.type === 'O2 Sat');
+    const latestDate = vitals.length > 0
+        ? vitals.reduce((best, v) => {
+              const t = new Date(v.date).getTime();
+              return t > best ? t : best;
+          }, 0)
+        : 0;
 
     return (
-        <div className="relative pl-4 space-y-4 py-2">
-            {/* Vertical Line */}
-            <div className="absolute top-2 bottom-2 left-[19px] w-px bg-gray-200 dark:bg-gray-700"></div>
-
-            {recentEvents.map((event, index) => (
-                <div key={index} className="relative flex items-start space-x-3 group">
-                    {/* Dot */}
-                    <div className="relative z-10 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 mt-1.5 shadow-sm group-hover:scale-125 transition-transform"></div>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{event.title}</span>
-                            <span className="text-[10px] text-gray-400 font-mono">{new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                        </div>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight mt-0.5" title={event.details}>
-                            {event.details}
-                        </p>
-                    </div>
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden group hover:scale-[1.01] transition-transform">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <HeartPulseIcon className="w-16 h-16" />
+            </div>
+            <div className="flex justify-between items-start mb-2 relative z-10">
+                <span className="text-xs font-bold text-blue-100 uppercase tracking-wider">Latest Vitals</span>
+                {latestDate > 0 && (
+                    <span className="text-[10px] text-blue-200 font-mono">
+                        {new Date(latestDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                )}
+            </div>
+            <div className="flex justify-between items-end relative z-10">
+                <div title="Blood Pressure">
+                    <span className="text-4xl font-bold tracking-tighter">
+                        {bp ? formatVitalValue(bp) : '--/--'}
+                    </span>
+                    <span className="text-xs text-blue-100 block font-medium mt-1 opacity-80">
+                        {bp ? bp.unit : 'mmHg'}
+                    </span>
                 </div>
-            ))}
+                <div className="text-right" title="Heart Rate">
+                    <span className="text-2xl font-semibold">{hr ? String(hr.value) : '--'}</span>
+                    <span className="text-xs text-blue-100 block font-medium mt-1 opacity-80">
+                        {hr ? hr.unit : 'bpm'}
+                    </span>
+                </div>
+                {spo2 && (
+                    <div className="text-right" title="SpO2">
+                        <span className="text-2xl font-semibold">{spo2.value}%</span>
+                        <span className="text-xs text-blue-100 block font-medium mt-1 opacity-80">SpO₂</span>
+                    </div>
+                )}
+            </div>
+            {/* Additional vitals row */}
+            {vitals.filter(v => !['BP', 'HR', 'O2 Sat'].includes(v.type)).length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 relative z-10">
+                    {vitals.filter(v => !['BP', 'HR', 'O2 Sat'].includes(v.type)).map(v => (
+                        <div key={v.type} className="text-center">
+                            <span className="text-sm font-semibold">{formatVitalValue(v)}</span>
+                            <span className="text-[10px] text-blue-200 block">{v.label} ({v.unit})</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
-const TaskList: React.FC<{ tasks: ClinicalTask[], onAddTask: (text: string) => void, onToggleTask: (id: string) => void, onDeleteTask: (id: string) => void }> = ({ tasks, onAddTask, onToggleTask, onDeleteTask }) => {
+// --- CONDITIONS LIST ---
+
+const ConditionsList: React.FC<{ conditions: DiagnosisDocument[] }> = ({ conditions }) => {
+    const [expanded, setExpanded] = useState(false);
+    const visibleCount = expanded ? conditions.length : 4;
+    const visible = conditions.slice(0, visibleCount);
+
+    return (
+        <div className="space-y-1.5">
+            {visible.map((dx, i) => (
+                <div key={dx.id ?? i} className="flex items-start justify-between gap-2 group p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="flex items-start gap-2 min-w-0">
+                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                            dx.status === 'active' ? 'bg-green-500' : dx.status === 'resolved' ? 'bg-gray-400' : 'bg-yellow-500'
+                        }`} />
+                        <div className="min-w-0">
+                            <span className="text-xs font-medium text-gray-800 dark:text-gray-200 block truncate" title={dx.name}>{dx.name}</span>
+                            {dx.icd10 && <span className="text-[9px] text-gray-400 dark:text-gray-500">{dx.icd10}</span>}
+                        </div>
+                    </div>
+                    <span className="text-[9px] text-gray-400 flex-shrink-0 capitalize">{dx.status}</span>
+                </div>
+            ))}
+            {conditions.length > 4 && (
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 font-medium w-full text-center pt-1"
+                >
+                    {expanded ? 'Show less' : `+${conditions.length - 4} more`}
+                </button>
+            )}
+        </div>
+    );
+};
+
+// --- MEDICATIONS LIST ---
+
+const MedicationsList: React.FC<{ medications: MedicationDocument[] }> = ({ medications }) => {
+    const [expanded, setExpanded] = useState(false);
+    const visibleCount = expanded ? medications.length : 5;
+    const visible = medications.slice(0, visibleCount);
+
+    return (
+        <div className="space-y-1.5">
+            {visible.map((med, i) => (
+                <div key={med.id ?? i} className="flex items-start justify-between gap-2 group p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="min-w-0">
+                        <span className="text-xs font-medium text-gray-800 dark:text-gray-200 block truncate" title={med.name}>
+                            {med.name}
+                        </span>
+                        <span className="text-[9px] text-gray-400">
+                            {[med.dose, med.frequency, med.route].filter(Boolean).join(' · ')}
+                        </span>
+                    </div>
+                    <span className={`text-[9px] flex-shrink-0 px-1.5 py-0.5 rounded-full font-medium ${
+                        med.status === 'active'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : med.status === 'held'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                    }`}>
+                        {med.status}
+                    </span>
+                </div>
+            ))}
+            {medications.length > 5 && (
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 font-medium w-full text-center pt-1"
+                >
+                    {expanded ? 'Show less' : `+${medications.length - 5} more`}
+                </button>
+            )}
+        </div>
+    );
+};
+
+// --- LABS LIST ---
+
+const LabsList: React.FC<{ labs: LabGroup[] }> = ({ labs }) => {
+    const [expanded, setExpanded] = useState(false);
+    const visibleCount = expanded ? labs.length : 6;
+    const visible = labs.slice(0, visibleCount);
+
+    return (
+        <div className="space-y-1">
+            {visible.map((lab, i) => (
+                <DataRow
+                    key={i}
+                    label={lab.testName}
+                    value={String(lab.value)}
+                    unit={lab.unit}
+                    highlight={lab.isAbnormal}
+                    subtext={lab.referenceRange ? `Ref: ${lab.referenceRange}` : undefined}
+                />
+            ))}
+            {labs.length > 6 && (
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 font-medium w-full text-center pt-1"
+                >
+                    {expanded ? 'Show less' : `+${labs.length - 6} more`}
+                </button>
+            )}
+        </div>
+    );
+};
+
+// --- TASK LIST (preserved) ---
+
+const TaskList: React.FC<{
+    tasks: ClinicalTask[];
+    onAddTask: (text: string) => void;
+    onToggleTask: (id: string) => void;
+    onDeleteTask: (id: string) => void;
+}> = ({ tasks, onAddTask, onToggleTask, onDeleteTask }) => {
     const [newTaskText, setNewTaskText] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -221,25 +308,44 @@ const TaskList: React.FC<{ tasks: ClinicalTask[], onAddTask: (text: string) => v
     );
 };
 
+// --- SUMMARY HEADER CARD ---
+
+const SummaryHeader: React.FC<{ snapshot: ClinicalSnapshotData }> = ({ snapshot }) => {
+    if (snapshot.summarySegments.length === 0) return null;
+
+    return (
+        <div className="glass-card rounded-2xl p-3">
+            <div className="flex flex-wrap gap-2">
+                {snapshot.summarySegments.map((seg, i) => (
+                    <span
+                        key={i}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    >
+                        {seg}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN COMPONENT ---
+
 export const ClinicalDashboard: React.FC = () => {
     const { state, actions } = useAppContext();
     const { selectedPatient, isDashboardOpen } = state;
-    const { toggleDashboard, handleUpdateTasks, showToast, toggleSettings } = actions; // Added toggleSettings
+    const { toggleDashboard, handleUpdateTasks, showToast, toggleSettings, extractedData } = actions;
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
-    const data = useMemo(() => {
-        if (!selectedPatient) return null;
-        return {
-            echo: extractEchoData(selectedPatient),
-            labs: extractLabData(selectedPatient),
-            rhythm: extractRhythm(selectedPatient),
-            anticoag: extractAnticoagulation(selectedPatient),
-            events: extractMedicationEvents(selectedPatient),
-            tasks: selectedPatient.tasks || []
-        };
-    }, [selectedPatient]);
+    // Aggregate extracted data into the clinical snapshot
+    const snapshot: ClinicalSnapshotData = useMemo(
+        () => aggregateClinicalData(extractedData),
+        [extractedData]
+    );
+
+    const tasks = selectedPatient?.tasks ?? [];
 
     const handleAddTask = async (text: string) => {
         if (!selectedPatient) return;
@@ -317,11 +423,12 @@ export const ClinicalDashboard: React.FC = () => {
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                {/* Empty State for New Users */}
-                {(!selectedPatient.reports || selectedPatient.reports.length === 0) && (!selectedPatient.medicalHistory || selectedPatient.medicalHistory.length === 0) && (
+
+                {/* Empty State — no reports and no extracted data */}
+                {!snapshot.hasData && (!selectedPatient.reports || selectedPatient.reports.length === 0) && (
                     <div className="glass-card rounded-2xl p-5 text-center space-y-3">
                         <div className="w-12 h-12 mx-auto rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                            <ClipboardListIcon className="w-6 h-6 text-blue-500" />
+                            <DocumentIcon className="w-6 h-6 text-blue-500" />
                         </div>
                         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">No Health Records Yet</h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -330,66 +437,96 @@ export const ClinicalDashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* Hemodynamics Card */}
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden group hover:scale-[1.01] transition-transform">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <HeartPulseIcon className="w-16 h-16" />
-                    </div>
-                    <div className="flex justify-between items-start mb-2 relative z-10">
-                        <span className="text-xs font-bold text-blue-100 uppercase tracking-wider">Current Vitals</span>
-                    </div>
-                    <div className="flex justify-between items-end relative z-10">
-                        <div title="Blood Pressure">
-                            <span className="text-4xl font-bold tracking-tighter">{selectedPatient.currentStatus.vitals.match(/BP\s*(\d+\/\d+)/i)?.[1] || '--/--'}</span>
-                            <span className="text-xs text-blue-100 block font-medium mt-1 opacity-80">mmHg</span>
+                {/* Reports uploaded but no extracted data yet */}
+                {!snapshot.hasData && selectedPatient.reports && selectedPatient.reports.length > 0 && (
+                    <div className="glass-card rounded-2xl p-5 text-center space-y-3">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                            <AlertCircleIcon className="w-6 h-6 text-amber-500" />
                         </div>
-                        <div className="text-right" title="Heart Rate">
-                            <span className="text-2xl font-semibold">{selectedPatient.currentStatus.vitals.match(/HR\s*(\d+)/i)?.[1] || '--'}</span>
-                            <span className="text-xs text-blue-100 block font-medium mt-1 opacity-80">bpm</span>
-                        </div>
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Processing Documents</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                            {selectedPatient.reports.length} document{selectedPatient.reports.length !== 1 ? 's' : ''} uploaded. Clinical data is being extracted — this snapshot will update automatically.
+                        </p>
                     </div>
-                </div>
+                )}
 
-                {/* Action Items / Tasks */}
-                <DashboardCard title="Action Items" icon={<ClipboardListIcon className="w-4 h-4" />} date={null}>
-                    <TaskList
-                        tasks={data?.tasks || []}
-                        onAddTask={handleAddTask}
-                        onToggleTask={handleToggleTask}
-                        onDeleteTask={requestDeleteTask}
-                    />
-                </DashboardCard>
+                {/* --- DYNAMIC SNAPSHOT (only when data exists) --- */}
+                {snapshot.hasData && (
+                    <>
+                        {/* Summary chips */}
+                        <SummaryHeader snapshot={snapshot} />
 
-                {/* Key Metrics */}
-                <DashboardCard title="Function & Rhythm" icon={<EcgWaveformIcon className="w-4 h-4" />} date={data?.echo.date}>
-                    <DataRow label="LVEF" value={data?.echo.lvef || 'N/A'} highlight />
-                    <DataRow label="Rhythm" value={data?.rhythm.rhythm || 'Unknown'} />
-                </DashboardCard>
+                        {/* Vitals Hero (only if vitals extracted) */}
+                        {snapshot.vitalGroups.length > 0 && (
+                            <VitalsHeroCard vitals={snapshot.vitalGroups} />
+                        )}
 
-                {/* Renal & Electrolytes */}
-                <DashboardCard title="Renal & Lytes" icon={<BeakerIcon className="w-4 h-4" />} date={data?.labs.date}>
-                    <DataRow label="Creatinine" value={data?.labs.creatinine || 'N/A'} unit="mg/dL" />
-                    <DataRow label="eGFR" value={data?.labs.egfr || 'N/A'} unit="mL/min" />
-                    <DataRow label="Potassium" value={data?.labs.potassium || 'N/A'} unit="mEq/L" highlight={parseFloat(data?.labs.potassium || '0') > 5.0 || parseFloat(data?.labs.potassium || '0') < 3.5} />
-                </DashboardCard>
+                        {/* Action Items / Tasks */}
+                        <DashboardCard title="Action Items" icon={<ClipboardListIcon className="w-4 h-4" />} date={null}>
+                            <TaskList
+                                tasks={tasks}
+                                onAddTask={handleAddTask}
+                                onToggleTask={handleToggleTask}
+                                onDeleteTask={requestDeleteTask}
+                            />
+                        </DashboardCard>
 
-                {/* Anticoagulation */}
-                <DashboardCard title="Anticoagulation" icon={<PillIcon className="w-4 h-4" />} date={null}>
-                    <DataRow label="Status" value={data?.anticoag.status || 'None'} highlight={data?.anticoag.status !== 'None'} />
-                    <DataRow label="CHA₂DS₂-VASc" value={String(data?.anticoag.score)} />
-                </DashboardCard>
+                        {/* Active Conditions (only if conditions extracted) */}
+                        {snapshot.conditions.length > 0 && (
+                            <DashboardCard
+                                title="Conditions"
+                                icon={<ClipboardListIcon className="w-4 h-4" />}
+                                badge={String(snapshot.conditions.filter(c => c.status === 'active').length) + ' active'}
+                            >
+                                <ConditionsList conditions={snapshot.conditions} />
+                            </DashboardCard>
+                        )}
 
-                {/* Timeline */}
-                <DashboardCard title="Clinical Timeline" icon={<ClipboardListIcon className="w-4 h-4" />} date={null}>
-                    <TimelineView events={data?.events || []} />
-                </DashboardCard>
+                        {/* Current Medications (only if medications extracted) */}
+                        {snapshot.medications.length > 0 && (
+                            <DashboardCard
+                                title="Medications"
+                                icon={<PillIcon className="w-4 h-4" />}
+                                badge={String(snapshot.medications.filter(m => m.status === 'active').length) + ' active'}
+                            >
+                                <MedicationsList medications={snapshot.medications} />
+                            </DashboardCard>
+                        )}
 
-                {/* Manual Notes Link */}
-                <div className="pt-2 border-t border-white/20 dark:border-white/10">
-                    <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 italic">
-                        Auto-extracted from latest available reports.
-                    </p>
-                </div>
+                        {/* Latest Labs (only if labs extracted) */}
+                        {snapshot.labGroups.length > 0 && (
+                            <DashboardCard
+                                title="Latest Labs"
+                                icon={<BeakerIcon className="w-4 h-4" />}
+                                date={snapshot.labGroups[0]?.date}
+                                badge={snapshot.labGroups.some(l => l.isAbnormal) ? 'abnormal' : null}
+                            >
+                                <LabsList labs={snapshot.labGroups} />
+                            </DashboardCard>
+                        )}
+                    </>
+                )}
+
+                {/* Action Items shown even when no extracted data, as long as patient exists */}
+                {!snapshot.hasData && (selectedPatient.reports?.length ?? 0) > 0 && (
+                    <DashboardCard title="Action Items" icon={<ClipboardListIcon className="w-4 h-4" />} date={null}>
+                        <TaskList
+                            tasks={tasks}
+                            onAddTask={handleAddTask}
+                            onToggleTask={handleToggleTask}
+                            onDeleteTask={requestDeleteTask}
+                        />
+                    </DashboardCard>
+                )}
+
+                {/* Footer */}
+                {snapshot.hasData && (
+                    <div className="pt-2 border-t border-white/20 dark:border-white/10">
+                        <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 italic">
+                            Auto-extracted from {snapshot.totalDataPoints} data point{snapshot.totalDataPoints !== 1 ? 's' : ''} across all uploaded documents.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <DeleteConfirmationModal

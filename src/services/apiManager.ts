@@ -18,10 +18,14 @@ let isRateLimited = false;
 let retryAfterTimestamp = 0;
 const BACKOFF_DURATION_MS = 60 * 1000; // 60 seconds
 const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY_MS = 1000;
+const INITIAL_RETRY_DELAY_MS = 2000; // 2s base for 429 retries
 
 const RATE_LIMIT_ERROR_MESSAGE = 'You have exceeded the API rate limit. Please wait a moment and try again.';
 const SERVICE_OVERLOADED_MESSAGE = 'The AI service is temporarily at capacity. Please try again in a moment.';
+
+/** Returns true if the error indicates a 429 / RESOURCE_EXHAUSTED rate limit. */
+const isRateLimitError = (errorString: string): boolean =>
+    errorString.includes('429') || errorString.toLowerCase().includes('resource_exhausted');
 
 /** Returns true if the error indicates a 503 / UNAVAILABLE / high-demand condition. */
 const isServiceOverloaded = (errorString: string): boolean =>
@@ -32,35 +36,62 @@ const isServiceOverloaded = (errorString: string): boolean =>
 /** Sleeps for the given milliseconds. */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// --- Request Throttle ---
+// Ensures a minimum gap between consecutive API calls to avoid bursting rate limits.
+let lastRequestTimestamp = 0;
+const MIN_REQUEST_GAP_MS = 350; // 350ms minimum between calls
+
+/**
+ * Waits if necessary to enforce the minimum gap between API requests.
+ */
+async function throttle(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - lastRequestTimestamp;
+    if (elapsed < MIN_REQUEST_GAP_MS) {
+        await sleep(MIN_REQUEST_GAP_MS - elapsed);
+    }
+    lastRequestTimestamp = Date.now();
+}
+
 /**
  * A generic wrapper for API calls to handle rate limiting with exponential backoff.
- * It blocks new requests if the app is currently rate-limited and sets a backoff period
- * when a 429 error is detected. It also retries on 503/UNAVAILABLE with exponential backoff.
+ * Retries on both 429 (rate limit) and 503 (service overloaded) with exponential backoff.
+ * Also enforces a minimum gap between requests to prevent bursting.
  * @param apiCall The async function to execute.
  * @returns The result of the apiCall.
- * @throws An error if the call is blocked or if the underlying API call fails.
+ * @throws An error if the call is blocked or if the underlying API call fails after all retries.
  */
 async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
+  // If we're in a global cooldown period, wait it out (but don't throw immediately)
   if (isRateLimited && Date.now() < retryAfterTimestamp) {
-    console.warn(`[ApiManager] Call blocked due to rate limiting. Retry after ${new Date(retryAfterTimestamp).toLocaleTimeString()}`);
-    throw new Error(RATE_LIMIT_ERROR_MESSAGE);
+    const waitTime = retryAfterTimestamp - Date.now();
+    console.warn(`[ApiManager] In rate-limit cooldown. Waiting ${Math.ceil(waitTime / 1000)}s before retrying...`);
+    await sleep(waitTime);
   }
 
-  // If the backoff period has passed, reset the rate limit state.
+  // Reset the rate limit state now that we've waited
   isRateLimited = false;
 
   let lastError: any;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
+      await throttle();
       return await apiCall();
     } catch (error: any) {
       lastError = error;
       const errorString = String(error.message || error);
 
-      // Check for the specific 429 status code or message from Gemini API
-      if (errorString.includes('429') || errorString.toLowerCase().includes('resource_exhausted')) {
-        console.error('[ApiManager] Rate limit exceeded. Activating backoff.');
+      // Check for 429 / RESOURCE_EXHAUSTED — retry with exponential backoff
+      if (isRateLimitError(errorString)) {
+        if (attempt < MAX_RETRIES) {
+          const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // 2s, 4s, 8s
+          console.warn(`[ApiManager] Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${delay}ms...`);
+          await sleep(delay);
+          continue;
+        }
+        // All retries exhausted — set global cooldown and throw
+        console.error('[ApiManager] Rate limit exceeded after all retries. Activating cooldown.');
         isRateLimited = true;
         retryAfterTimestamp = Date.now() + BACKOFF_DURATION_MS;
         throw new Error(RATE_LIMIT_ERROR_MESSAGE);
@@ -68,7 +99,7 @@ async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
 
       // Check for 503 / UNAVAILABLE — retry with exponential backoff
       if (isServiceOverloaded(errorString) && attempt < MAX_RETRIES) {
-        const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // 1s, 2s, 4s
+        const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // 2s, 4s, 8s
         console.warn(`[ApiManager] Service overloaded (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${delay}ms...`);
         await sleep(delay);
         continue;

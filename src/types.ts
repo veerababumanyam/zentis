@@ -88,6 +88,8 @@ export interface ImageMessage {
     type: 'image';
     base64Data: string;
     mimeType: string;
+    storageUrl?: string; // Firebase Storage download URL (persisted instead of base64)
+    thumbnailBase64?: string; // Small thumbnail for inline preview (~2-5KB)
 }
 
 export interface UploadableFile {
@@ -97,6 +99,8 @@ export interface UploadableFile {
     previewUrl: string; // Used for client-side thumbnail rendering
     isLink?: boolean; // NEW: Flag for external links
     sourceUrl?: string; // NEW: The original URL
+    storageUrl?: string; // Firebase Storage download URL (persisted instead of base64)
+    thumbnailBase64?: string; // Small thumbnail for inline preview (~2-5KB)
 }
 
 export interface MultiFileMessage {

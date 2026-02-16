@@ -681,7 +681,18 @@ export const runMultiModalAnalysisAgent = async (promptText: string, files: Uplo
     const parts: any[] = [{ text: `Patient: ${patient.name}. ${promptText}` }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64Data } }));
 
-    // Use Pro for Multimodal analysis
-    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: { parts } });
-    return { id: Date.now(), sender: 'ai', type: 'text', text: response.text };
+    // Try Pro first for best quality; fall back to Flash on rate limit
+    try {
+        const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: { parts } });
+        return { id: Date.now(), sender: 'ai', type: 'text', text: response.text };
+    } catch (error: any) {
+        const errorString = String(error.message || error);
+        if (errorString.includes('429') || errorString.toLowerCase().includes('resource_exhausted')) {
+            console.warn('[MultiModal] Pro model rate-limited, falling back to Flash model...');
+            const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: { parts } });
+            const fallbackNote = '\n\n---\n*⚡ Note: This analysis used the faster Flash model due to high demand. Results may be slightly less detailed.*';
+            return { id: Date.now(), sender: 'ai', type: 'text', text: (response.text || '') + fallbackNote };
+        }
+        throw error;
+    }
 };

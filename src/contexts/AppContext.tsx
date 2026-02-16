@@ -5,8 +5,9 @@ import type { Patient, Message, TextMessage, Report, UploadableFile, Feedback, A
 import { appReducer, initialState } from './reducer';
 import { fetchPatients, updatePatient, addReportMetadata, saveExtractedData, createPatient, fetchExtractedData, getPatient, softDeleteReport, restoreReport, permanentlyDeleteReport } from '../services/ehrService';
 import * as apiManager from '../services/apiManager';
-import { uploadReportAttachment } from '../services/storageService'; // NEW
+import { uploadReportAttachment, uploadChatAttachment } from '../services/storageService'; // NEW
 import { runExtractionPipeline, type ExtractionProgress, type ExtractedPatientData } from '../services/documentExtractionPipeline';
+import { generateThumbnail, stripBase64FromHistories, wouldFitInStorage, pruneToFit } from '../utils/chatStorageOptimizer';
 import { getNextQuestions } from '../services/clinicalPathwaysService';
 import { getFileTypeFromFile, getLinkMetadata } from '../utils';
 import { getBriefing, setBriefing } from '../services/cacheService';
@@ -208,35 +209,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Safe LocalStorage Management (Prevents Quota Crashes)
     // -------------------------------------------------------------------------
 
-    const pruneChatHistory = useCallback((history: Record<string, Message[]>): Record<string, Message[]> => {
-        const pruned: Record<string, Message[]> = {};
-        for (const [patientId, messages] of Object.entries(history)) {
-            // Strategy 1: Limit to last 50 messages per patient
-            let recentMessages = messages;
-            if (messages.length > 50) {
-                recentMessages = messages.slice(-50);
-            }
+    /**
+     * Proactively strips base64 data and limits message count before saving chat histories.
+     * This prevents QuotaExceededError by ensuring heavy image payloads never reach localStorage.
+     */
+    const prepareChatHistoriesForStorage = useCallback((history: Record<string, Message[]>): Record<string, Message[]> => {
+        // Always strip base64 first (images are in Firebase Storage via storageUrl)
+        let cleaned = stripBase64FromHistories(history);
 
-            // Strategy 2: Remove base64 data from heavy message types
-            pruned[patientId] = recentMessages.map(msg => {
-                if (msg.type === 'image' && (msg as any).base64Data) {
-                    return { ...msg, base64Data: '' };
-                }
-                if (msg.type === 'multi_file' && (msg as any).files) {
-                    return {
-                        ...msg,
-                        files: (msg as any).files.map((f: any) => ({ ...f, base64Data: '' }))
-                    };
-                }
-                return msg;
-            });
+        // Check if it fits; if not, prune more aggressively
+        if (!wouldFitInStorage(cleaned)) {
+            cleaned = pruneToFit(history);
         }
-        return pruned;
+
+        return cleaned;
     }, []);
 
-    const safeSetItem = useCallback((key: string, value: any, pruneStrategy?: (val: any) => any) => {
+    const safeSetItem = useCallback((key: string, value: any, preProcessor?: (val: any) => any) => {
         try {
-            localStorage.setItem(key, JSON.stringify(value));
+            // Pre-process the value before saving (e.g., strip base64 for chat histories)
+            const processedValue = preProcessor ? preProcessor(value) : value;
+            localStorage.setItem(key, JSON.stringify(processedValue));
         } catch (error: any) {
             // Check for QuotaExceededError
             if (error.name === 'QuotaExceededError' || error.code === 22 || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
@@ -258,32 +251,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     console.info(`Cleared ${keysToRemove.length} temporary cache items to free space.`);
 
                     try {
-                        localStorage.setItem(key, JSON.stringify(value));
+                        const processedValue = preProcessor ? preProcessor(value) : value;
+                        localStorage.setItem(key, JSON.stringify(processedValue));
                         return;
                     } catch (retryError) {
                         console.warn("Retrying save after cache cleanup failed.");
                     }
                 }
 
-                // 2. If valid prune strategy applicable
-                if (pruneStrategy) {
+                // 2. Last resort: aggressively prune for chat histories
+                if (key === 'chatHistories') {
                     try {
-                        console.warn(`Applying prune strategy for '${key}' and retrying.`);
-                        const prunedValue = pruneStrategy(value);
-                        localStorage.setItem(key, JSON.stringify(prunedValue));
+                        console.warn(`Aggressively pruning '${key}' and retrying.`);
+                        const aggressivelyPruned = pruneToFit(value, 20);
+                        localStorage.setItem(key, JSON.stringify(aggressivelyPruned));
                     } catch (pruneError) {
-                        console.error(`Failed to save '${key}' even after pruning.`, pruneError);
+                        console.error(`Failed to save '${key}' even after aggressive pruning.`, pruneError);
                     }
                 }
             } else {
                 console.error(`Failed to save '${key}' to localStorage:`, error);
             }
         }
-    }, [pruneChatHistory, showToast]);
+    }, [showToast]);
 
     useEffect(() => {
-        safeSetItem('chatHistories', chatHistories, pruneChatHistory);
-    }, [chatHistories, safeSetItem, pruneChatHistory]);
+        safeSetItem('chatHistories', chatHistories, prepareChatHistoriesForStorage);
+    }, [chatHistories, safeSetItem, prepareChatHistoriesForStorage]);
 
     useEffect(() => {
         safeSetItem('questionHistories', questionHistories);
@@ -569,6 +563,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         try {
             if (files.length > 0) {
+                // Step 1: Read raw file data for the API call
                 const processedFiles: UploadableFile[] = await Promise.all(files.map(async file => {
                     const isDicom = file.name.toLowerCase().endsWith('.dcm') || file.type === 'application/dicom';
                     if (isDicom) return renderDicomToJpegForUpload(file);
@@ -580,8 +575,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     });
                     return { name: file.name, mimeType: file.type, base64Data: dataUrl.split(',')[1], previewUrl: dataUrl };
                 }));
-                const userMsg = { id: Date.now(), sender: 'user' as const, type: 'multi_file' as const, text: query, files: processedFiles };
+
+                // Step 2: Upload to Firebase Storage & generate thumbnails (parallel, non-blocking for API call)
+                const storageEnhancedFiles: UploadableFile[] = await Promise.all(processedFiles.map(async (pf, i) => {
+                    let storageUrl = '';
+                    let thumbnailBase64 = '';
+                    try {
+                        // Upload original file to Firebase Storage
+                        const blob = await fetch(`data:${pf.mimeType};base64,${pf.base64Data}`).then(r => r.blob());
+                        const fileObj = new File([blob], pf.name || `upload_${i}`, { type: pf.mimeType });
+                        storageUrl = await uploadChatAttachment(fileObj, patientIdToUse);
+                    } catch (uploadErr) {
+                        console.warn(`[Chat] Failed to upload file ${pf.name} to storage:`, uploadErr);
+                    }
+                    try {
+                        // Generate tiny thumbnail for localStorage persistence
+                        if (pf.mimeType.startsWith('image/')) {
+                            thumbnailBase64 = await generateThumbnail(pf.base64Data, pf.mimeType);
+                        }
+                    } catch (thumbErr) {
+                        console.warn(`[Chat] Thumbnail generation failed for ${pf.name}:`, thumbErr);
+                    }
+                    return { ...pf, storageUrl, thumbnailBase64 };
+                }));
+
+                // Step 3: Add user message to chat (with full base64 for current session rendering)
+                const userMsg = { id: Date.now(), sender: 'user' as const, type: 'multi_file' as const, text: query, files: storageEnhancedFiles };
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: userMsg } });
+
+                // Step 4: Call Gemini API with full base64 data
                 const aiMsg = await apiManager.runMultiModalAnalysisAgent(query, processedFiles, patient, aiSettings);
                 aiMsg.id = Date.now() + 1;
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: aiMsg } });

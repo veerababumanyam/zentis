@@ -261,19 +261,33 @@ const UserMessageContent: React.FC<{ message: Message; onViewFiles: (files: Uplo
         case 'text':
             return <p className="font-medium text-white">{message.text}</p>;
         case 'image':
+            // Resolve image source: storageUrl > base64 > thumbnail
+            const imgSrc = message.storageUrl
+                ? message.storageUrl
+                : message.base64Data
+                    ? `data:${message.mimeType};base64,${message.base64Data}`
+                    : message.thumbnailBase64
+                        ? `data:image/jpeg;base64,${message.thumbnailBase64}`
+                        : '';
             const imageFile: UploadableFile = {
                 name: "Uploaded Image",
                 mimeType: message.mimeType,
-                base64Data: message.base64Data,
-                previewUrl: `data:${message.mimeType};base64,${message.base64Data}`
+                base64Data: message.base64Data || '',
+                previewUrl: imgSrc,
+                storageUrl: message.storageUrl,
+                thumbnailBase64: message.thumbnailBase64,
             };
-            return (
+            return imgSrc ? (
                 <div onClick={() => onViewFiles([imageFile], 0)} className="p-1.5 bg-white/20 rounded-xl cursor-pointer hover:bg-white/30 transition-colors backdrop-blur-sm">
                     <img
-                        src={imageFile.previewUrl}
+                        src={imgSrc}
                         alt="Uploaded report"
                         className="max-w-xs max-h-64 rounded-lg shadow-sm"
                     />
+                </div>
+            ) : (
+                <div className="p-3 bg-white/10 rounded-xl text-white/60 text-sm italic">
+                    📷 Image uploaded (preview unavailable)
                 </div>
             );
         case 'multi_file':
@@ -281,19 +295,27 @@ const UserMessageContent: React.FC<{ message: Message; onViewFiles: (files: Uplo
                 <div>
                     {message.text && <p className="mb-3 font-medium">{message.text}</p>}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                        {message.files.map((file, index) => (
+                        {message.files.map((file, index) => {
+                            // Resolve file image source: storageUrl > previewUrl > thumbnail
+                            const fileSrc = file.storageUrl || file.previewUrl || (file.thumbnailBase64 ? `data:image/jpeg;base64,${file.thumbnailBase64}` : '');
+                            return (
                             <div
                                 key={index}
                                 onClick={() => onViewFiles(message.files, index)}
                                 className="relative group aspect-square bg-white/10 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden border border-white/20 hover:border-white/40 transition-all"
                             >
-                                <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                {fileSrc ? (
+                                    <img src={fileSrc} alt={file.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                ) : (
+                                    <div className="text-white/40 text-xs text-center p-2">📎 {file.name}</div>
+                                )}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center p-1 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
                                     <ReportTypeIcon type={getFileTypeFromFile(file)} className="w-6 h-6 text-white drop-shadow-md" />
                                     <p className="text-white text-xs text-center font-bold truncate mt-1 drop-shadow-md w-full px-1">{file.name}</p>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )

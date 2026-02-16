@@ -69,12 +69,19 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({ files, startIn
   }, [activeFile, fileType]);
 
   const renderFile = () => {
-    const dataUrl = `data:${activeFile.mimeType};base64,${activeFile.base64Data}`;
+    // Prefer storageUrl (Firebase Storage) when base64Data is empty (e.g., after reload)
+    const imageSrc = activeFile.base64Data
+        ? `data:${activeFile.mimeType};base64,${activeFile.base64Data}`
+        : (activeFile as any).storageUrl || '';
     switch (fileType) {
         case 'Imaging':
-            return <ImageWithZoom src={dataUrl} alt={activeFile.name} />;
+            return imageSrc
+                ? <ImageWithZoom src={imageSrc} alt={activeFile.name} />
+                : <div className="text-white/60 text-sm italic">Image not available. It may have been cleared from local storage.</div>;
         case 'PDF':
-            return <PdfViewer url={dataUrl} />;
+            return imageSrc
+                ? <PdfViewer url={imageSrc} />
+                : <div className="text-white/60 text-sm italic">PDF not available locally.</div>;
         case 'DICOM':
             if (dicomUrl) {
                 return <DicomViewer url={dicomUrl} />;

@@ -11,6 +11,15 @@ export interface StagedFile {
 // Fix: Export constants to be used in ChatComposer.tsx for file input accept attribute.
 export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/dicom', 'text/plain', 'application/zip', 'application/x-zip-compressed'];
 export const ALLOWED_EXTENSIONS = ['.dcm'];
+export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
+
+const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
 
 const generatePreview = async (file: File): Promise<string> => {
     if (file.type.startsWith('image/')) {
@@ -90,6 +99,12 @@ export const useFileStaging = () => {
         let errors: string[] = [];
 
         for (const file of Array.from(files)) {
+            // Check file size before any processing (including ZIP extraction)
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                errors.push(`"${file.name}" (${formatFileSize(file.size)}) exceeds the 20 MB size limit.`);
+                continue;
+            }
+
             if (file.type.includes('zip')) {
                 try {
                     const zip = await JSZip.loadAsync(file);
@@ -97,6 +112,11 @@ export const useFileStaging = () => {
                         if (!zip.files[filename].dir) {
                             const zipFile = zip.files[filename];
                             const blob = await zipFile.async('blob');
+                            // Check extracted file size as well
+                            if (blob.size > MAX_FILE_SIZE_BYTES) {
+                                errors.push(`"${filename}" inside ${file.name} (${formatFileSize(blob.size)}) exceeds the 20 MB size limit.`);
+                                continue;
+                            }
                             const extractedFile = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
                             newFiles.push(extractedFile);
                         }

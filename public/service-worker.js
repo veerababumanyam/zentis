@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zentis-cache-v1';
+const CACHE_NAME = 'zentis-cache-v2';
 const URLS_TO_CACHE = [
     '/',
     '/index.html',
@@ -14,6 +14,8 @@ const URLS_TO_CACHE = [
 
 // Install Event - Cache Files
 self.addEventListener('install', (event) => {
+    // Activate new service worker immediately (don't wait for old one to be released)
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -23,7 +25,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate Event - Clean up old caches
+// Activate Event - Clean up old caches and take control immediately
 self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
@@ -35,12 +37,25 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
 // Fetch Event - Serve from cache, fall back to network
 self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
+    // Skip cross-origin requests entirely (API calls, CDN resources, Firebase Storage)
+    // Let the browser handle them natively — avoids null response errors
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    // Only cache GET requests — skip POST/PUT/DELETE (e.g., file uploads)
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
@@ -70,6 +85,8 @@ self.addEventListener('fetch', (event) => {
                         if (event.request.mode === 'navigate') {
                             return caches.match('/index.html');
                         }
+                        // Return a proper Response for non-navigation requests to avoid null respondWith error
+                        return new Response('Network error', { status: 408, statusText: 'Request Timeout' });
                     });
             })
     );

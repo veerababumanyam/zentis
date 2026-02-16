@@ -11,6 +11,7 @@ import { generateThumbnail, stripBase64FromHistories, wouldFitInStorage, pruneTo
 import { getNextQuestions } from '../services/clinicalPathwaysService';
 import { getFileTypeFromFile, getLinkMetadata } from '../utils';
 import { getBriefing, setBriefing } from '../services/cacheService';
+import { clearCacheStorage } from '../utils/storageCleaner';
 import { MissingApiKeyError } from '../errors';
 
 import { useAuth } from './AuthContext'; // NEW
@@ -227,50 +228,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const safeSetItem = useCallback((key: string, value: any, preProcessor?: (val: any) => any) => {
         try {
-            // Pre-process the value before saving (e.g., strip base64 for chat histories)
             const processedValue = preProcessor ? preProcessor(value) : value;
             localStorage.setItem(key, JSON.stringify(processedValue));
         } catch (error: any) {
             // Check for QuotaExceededError
             if (error.name === 'QuotaExceededError' || error.code === 22 || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                console.warn(`LocalStorage quota exceeded saving '${key}'. Attempting cleanup...`);
-                showToast("Storage limit reached. Optimizing space...", "warning");
+                console.warn(`[safeSetItem] Quota exceeded saving '${key}'. Running cache eviction…`);
+                showToast('Storage limit reached. Optimizing space…', 'warning');
 
-                // 1. Attempt to clear temporary caches from services
-                const cachePrefixes = ['daily_huddle_', 'analysis_cache_', 'briefing_cache_', 'med_search_'];
-                const keysToRemove: string[] = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const k = localStorage.key(i);
-                    if (k && cachePrefixes.some(prefix => k.startsWith(prefix))) {
-                        keysToRemove.push(k);
-                    }
-                }
+                // 1. Evict temporary caches via the centralized utility
+                const evicted = clearCacheStorage();
 
-                if (keysToRemove.length > 0) {
-                    keysToRemove.forEach(k => localStorage.removeItem(k));
-                    console.info(`Cleared ${keysToRemove.length} temporary cache items to free space.`);
-
+                if (evicted > 0) {
                     try {
                         const processedValue = preProcessor ? preProcessor(value) : value;
                         localStorage.setItem(key, JSON.stringify(processedValue));
                         return;
-                    } catch (retryError) {
-                        console.warn("Retrying save after cache cleanup failed.");
+                    } catch {
+                        console.warn('[safeSetItem] Retry after cache eviction still failed.');
                     }
                 }
 
-                // 2. Last resort: aggressively prune for chat histories
+                // 2. Last resort: aggressively prune chat histories
                 if (key === 'chatHistories') {
                     try {
-                        console.warn(`Aggressively pruning '${key}' and retrying.`);
+                        console.warn(`[safeSetItem] Aggressively pruning '${key}'…`);
                         const aggressivelyPruned = pruneToFit(value, 20);
                         localStorage.setItem(key, JSON.stringify(aggressivelyPruned));
                     } catch (pruneError) {
-                        console.error(`Failed to save '${key}' even after aggressive pruning.`, pruneError);
+                        console.error(`[safeSetItem] Failed to save '${key}' even after aggressive pruning.`, pruneError);
                     }
                 }
             } else {
-                console.error(`Failed to save '${key}' to localStorage:`, error);
+                console.error(`[safeSetItem] Failed to save '${key}':`, error);
             }
         }
     }, [showToast]);

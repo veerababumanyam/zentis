@@ -11,7 +11,7 @@ import { db } from '../services/firebase';
 export const PatientSettingsModal: React.FC = () => {
     const { state, actions } = useAppContext();
     const { isSettingsOpen, selectedPatient } = state;
-    const { toggleSettings, showToast, selectPatient } = actions; // added selectPatient to handle post-logout/switch behavior if needed
+    const { toggleSettings, showToast, selectPatient, togglePerformanceModal } = actions;
     const { userProfile, logout, user } = useAuth();
 
     const [name, setName] = useState('');
@@ -220,6 +220,25 @@ export const PatientSettingsModal: React.FC = () => {
                                 className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-800 dark:text-gray-200 resize-none"
                                 placeholder="Medical history notes, allergies, etc."
                             />
+                        </div>
+
+                        {/* App Settings Shortcut */}
+                        <div className="pt-2">
+                             <div 
+                                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+                                onClick={() => { toggleSettings(); togglePerformanceModal(); }}
+                             >
+                                <div className="flex items-center space-x-3">
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">Application Settings</h4>
+                                        <p className="text-xs text-gray-500">Manage API Keys, AI preferences & Account</p>
+                                    </div>
+                                </div>
+                                <span className="text-gray-400 group-hover:text-blue-500 transition-colors">→</span>
+                             </div>
                         </div>
                     </div>
 

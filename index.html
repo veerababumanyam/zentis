@@ -24,12 +24,32 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then((registration) => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, (err) => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
+        // Force update: unregister stale service workers then re-register
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          const updatePromises = registrations.map((reg) => reg.update().catch(() => {}));
+          return Promise.all(updatePromises);
+        }).then(() => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then((registration) => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+              // If a new SW is waiting, activate it immediately
+              if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated') {
+                      console.log('New service worker activated');
+                    }
+                  });
+                }
+              });
+            }, (err) => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
       });
     }
   </script>

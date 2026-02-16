@@ -4,6 +4,24 @@ import type { Patient, Message, TextMessage, ReportComparisonMessage, ReportComp
 import type { MedicationDocument, LabResultDocument, VitalSignDocument, DiagnosisDocument } from '../databaseSchema';
 import { AI_MODELS } from '../../config/aiModels';
 
+/**
+ * Extracts text from a Gemini response, skipping thought parts.
+ * Avoids the SDK's `response.text` console.warn about non-text parts
+ * (e.g. thoughtSignature) when thinkingConfig is enabled.
+ */
+function extractText(response: any): string | undefined {
+    const parts = response?.candidates?.[0]?.content?.parts;
+    if (!parts || parts.length === 0) return undefined;
+    let text = '';
+    let hasText = false;
+    for (const part of parts) {
+        if (typeof part.text === 'string' && !part.thought) {
+            hasText = true;
+            text += part.text;
+        }
+    }
+    return hasText ? text : undefined;
+}
 
 // --- HELPER FUNCTIONS ---
 
@@ -357,7 +375,7 @@ export const runDeepThinkingAgent = async (patient: Patient, query: string, ai: 
                 thinkingConfig: { thinkingBudget: 32768 } // Enable Thinking Mode
             }
         });
-        return { id: 0, sender: 'ai', type: 'text', text: `### Deep Reasoning Analysis\n${response.text}` };
+        return { id: 0, sender: 'ai', type: 'text', text: `### Deep Reasoning Analysis\n${extractText(response) ?? response.text}` };
     } catch (error) {
         return { id: 0, sender: 'ai', type: 'text', text: "Error in deep reasoning module." };
     }

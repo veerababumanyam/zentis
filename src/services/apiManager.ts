@@ -36,6 +36,9 @@ const isServiceOverloaded = (errorString: string): boolean =>
 /** Sleeps for the given milliseconds. */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** Adds ±25% jitter to a delay to avoid thundering-herd retries. */
+const jitter = (ms: number) => ms * (0.75 + Math.random() * 0.5);
+
 // --- Request Throttle ---
 // Ensures a minimum gap between consecutive API calls to avoid bursting rate limits.
 let lastRequestTimestamp = 0;
@@ -85,8 +88,8 @@ async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
       // Check for 429 / RESOURCE_EXHAUSTED — retry with exponential backoff
       if (isRateLimitError(errorString)) {
         if (attempt < MAX_RETRIES) {
-          const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // 2s, 4s, 8s
-          console.warn(`[ApiManager] Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${delay}ms...`);
+          const delay = jitter(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt)); // ~2s, ~4s, ~8s with jitter
+          console.warn(`[ApiManager] Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${Math.round(delay)}ms...`);
           await sleep(delay);
           continue;
         }
@@ -99,8 +102,8 @@ async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
 
       // Check for 503 / UNAVAILABLE — retry with exponential backoff
       if (isServiceOverloaded(errorString) && attempt < MAX_RETRIES) {
-        const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // 2s, 4s, 8s
-        console.warn(`[ApiManager] Service overloaded (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${delay}ms...`);
+        const delay = jitter(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt)); // ~2s, ~4s, ~8s with jitter
+        console.warn(`[ApiManager] Service overloaded (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying in ${Math.round(delay)}ms...`);
         await sleep(delay);
         continue;
       }

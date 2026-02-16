@@ -8,6 +8,7 @@ import { useAppContext } from '../contexts/AppContext'; // NEW
 import { XCircleIcon } from './icons/ChecklistIcons';
 import { AlertTriangleIcon } from './icons/AlertTriangleIcon';
 import { LinkIcon } from './icons/LinkIcon';
+import { MissingApiKeyError } from '../errors';
 
 interface UploadReportFormProps {
     onSave: (reportData: Omit<Report, 'id'>, file?: File) => void;
@@ -121,9 +122,17 @@ export const UploadReportForm: React.FC<UploadReportFormProps> = ({ onSave, onCa
                 }
                 setProgress(100);
                 setTimeout(() => setStep('review'), 500); // Short delay to show 100%
-            } catch (err) {
-                setError('Failed to process or analyze the file. Please try again.');
-                console.error(err);
+            } catch (err: any) {
+                console.error('File processing error:', err);
+                if (err instanceof MissingApiKeyError || err?.name === 'MissingApiKeyError') {
+                    setError('AI analysis requires a Gemini API Key. Please add one in Settings → Personalization.');
+                } else if (err?.message?.includes('PDF library is not loaded')) {
+                    setError('PDF viewer library failed to load. Please refresh the page and try again.');
+                } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Network error')) {
+                    setError('Network error while processing the file. Please check your connection and try again.');
+                } else {
+                    setError('Failed to process or analyze the file. Please try again.');
+                }
                 setStep('initial');
             }
         }

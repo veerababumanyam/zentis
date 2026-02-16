@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // Your web app's Firebase configuration
 // Helper to access environment variables in both Vite and Node.js environments
@@ -55,14 +56,13 @@ if (missingVars.length > 0) {
     console.log('✓ Firebase configuration validated');
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
 // Initialize Services
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
 // Connect to emulators if in development mode and VITE_USE_EMULATORS is set
 if (getEnv('VITE_USE_EMULATORS') === 'true') {
@@ -74,6 +74,9 @@ if (getEnv('VITE_USE_EMULATORS') === 'true') {
 
     // Storage Emulator
     connectStorageEmulator(storage, '127.0.0.1', 9199);
+
+    // Functions Emulator
+    connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 
     console.log('Firebase Emulators connected');
 }

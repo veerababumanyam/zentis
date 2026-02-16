@@ -1,12 +1,13 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, TextMessage, UniversalSpecialistMessage, Report } from '../../types';
+import { AI_MODELS } from '../../config/aiModels';
 
 // Helper to filter reports and get text context
 const getSpecialtyContext = (patient: Patient, keywords: string[]): string => {
-    const relevantReports = patient.reports.filter(r => 
-        keywords.some(k => 
-            r.title.toLowerCase().includes(k) || 
+    const relevantReports = patient.reports.filter(r =>
+        keywords.some(k =>
+            r.title.toLowerCase().includes(k) ||
             r.type.toLowerCase().includes(k) ||
             (typeof r.content === 'string' && r.content.toLowerCase().includes(k))
         )
@@ -27,16 +28,16 @@ const getSpecialtyContext = (patient: Patient, keywords: string[]): string => {
 };
 
 const runSpecialtyAgentBase = async (
-    patient: Patient, 
-    query: string, 
-    specialtyName: string, 
-    keywords: string[], 
+    patient: Patient,
+    query: string,
+    specialtyName: string,
+    keywords: string[],
     roleDefinition: string,
     ai: GoogleGenAI
 ): Promise<UniversalSpecialistMessage | TextMessage> => {
-    
+
     const context = getSpecialtyContext(patient, keywords);
-    
+
     try {
         const prompt = `${roleDefinition}
         
@@ -76,7 +77,7 @@ const runSpecialtyAgentBase = async (
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Upgraded from 2.5-flash for better clinical reasoning
+            model: AI_MODELS.FLASH, // Upgraded from 2.5-flash for better clinical reasoning
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema }
         });

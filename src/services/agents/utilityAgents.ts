@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { Patient, Message, TextMessage, ReportComparisonMessage, ReportComparisonRow, SuggestedAction, Report, RiskStratificationMessage, RiskScoreItem, ConsultationPayload, DailyHuddle, ReportViewerMessage, AiPersonalizationSettings, UploadableFile, HccCodingMessage, SourceVerification, RiskFactorDetail } from '../../types';
 import type { MedicationDocument, LabResultDocument, VitalSignDocument, DiagnosisDocument } from '../databaseSchema';
+import { AI_MODELS } from '../../config/aiModels';
 
 
 // --- HELPER FUNCTIONS ---
@@ -133,7 +134,7 @@ export const runConsultReasonAgent = async (files: File[], ai: GoogleGenAI): Pro
         }
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: {
                 parts: [
                     { text: promptText },
@@ -184,7 +185,7 @@ export const runHccCodingAgent = async (patient: Patient, query: string, ai: Goo
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -271,7 +272,7 @@ export const runClinicalRiskAgent = async (patient: Patient, query: string, ai: 
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: { temperature: 0.3 }
         });
@@ -295,7 +296,7 @@ export const runReportDisplayAgent = async (patient: Patient, query: string, ai:
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema: { type: Type.OBJECT, properties: { reportId: { type: Type.STRING }, reasoning: { type: Type.STRING } } } }
         });
@@ -325,7 +326,7 @@ export const runGeneralCardiologyQueryAgent = async (patient: Patient, query: st
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt
         });
         return { id: 0, sender: 'ai', type: 'text', text: response.text };
@@ -350,7 +351,7 @@ export const runDeepThinkingAgent = async (patient: Patient, query: string, ai: 
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: AI_MODELS.PRO,
             contents: prompt,
             config: {
                 thinkingConfig: { thinkingBudget: 32768 } // Enable Thinking Mode
@@ -368,7 +369,7 @@ export const runGeneralQueryAgent = async (query: string, patient: Patient, ai: 
     Check for relevance/contraindications.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: AI_MODELS.FLASH,
         contents: prompt,
         config: { tools: [{ googleSearch: {} }] } // Search Grounding
     });
@@ -389,7 +390,7 @@ export const runImageAnalysisAgent = async (base64Data: string, mimeType: string
     Provide key findings and interpretation.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Pro for Vision
+        model: AI_MODELS.IMAGE, // Optimized for Image Analysis
         contents: { parts: [{ inlineData: { mimeType, data: base64Data } }, { text: prompt }] }
     });
 
@@ -403,7 +404,7 @@ export const runAudioTranscriptionAgent = async (audioBlob: Blob, ai: GoogleGenA
             reader.onloadend = async () => {
                 const base64data = (reader.result as string).split(',')[1];
                 const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
+                    model: AI_MODELS.FLASH,
                     contents: {
                         parts: [
                             { inlineData: { mimeType: audioBlob.type || 'audio/wav', data: base64data } },
@@ -425,7 +426,7 @@ export const runAudioTranscriptionAgent = async (audioBlob: Blob, ai: GoogleGenA
 export const generateSpeechAgent = async (text: string, ai: GoogleGenAI): Promise<string | null> => {
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
+            model: AI_MODELS.TTS,
             contents: { parts: [{ text }] },
             config: {
                 responseModalities: [Modality.AUDIO],
@@ -456,7 +457,7 @@ export const runDailyHuddleAgent = async (patients: Patient[], ai: GoogleGenAI):
     };
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: AI_MODELS.FLASH,
         contents: prompt,
         config: { responseMimeType: 'application/json', responseSchema }
     });
@@ -475,14 +476,14 @@ export const runSingleReportAnalysisAgent = async (report: Report, patient: Pati
                 { text: `Analyze this medical report image for ${patient.name}. Report: ${report.title} (${report.type}, ${report.date}). Provide a comprehensive summary including all key findings, values, and clinical significance.` },
                 { inlineData: { mimeType: imageData.mimeType, data: imageData.base64Data } }
             ];
-            const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: { parts } });
+            const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: { parts } });
             return { id: Date.now(), sender: 'ai', type: 'text', text: response.text, suggestedAction: { type: 'view_report', label: 'View Report', reportId: report.id } };
         }
     }
 
     // Text-based analysis (original path or fallback)
     const prompt = `Analyze report for ${patient.name}. Report: ${report.title}. Content: ${textContent || 'No content available.'}. Summarize.`;
-    const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
+    const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt });
     return { id: Date.now(), sender: 'ai', type: 'text', text: response.text, suggestedAction: { type: 'view_report', label: 'View Report', reportId: report.id } };
 };
 
@@ -511,7 +512,7 @@ export const runMultiReportAnalysisAgent = async (reports: Report[], patient: Pa
         }
     }
 
-    const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: hasImageParts ? { parts } : parts.map(p => p.text).join('') });
+    const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: hasImageParts ? { parts } : parts.map(p => p.text).join('') });
     return { id: Date.now(), sender: 'ai', type: 'text', text: response.text };
 };
 
@@ -555,7 +556,7 @@ export const runReportComparisonAgent = async (currentReport: Report, previousRe
     try {
         const contents = hasImageParts ? { parts } : parts.map(p => 'text' in p ? p.text : '').join('');
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents,
             config: { responseMimeType: 'application/json', responseSchema }
         });
@@ -572,7 +573,7 @@ export const runSmartReportAnalysisAgent = async (reportContent: string, reportT
         required: ['suggestedTitle', 'extractedDate', 'summary', 'keyFindings']
     };
     try {
-        const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
+        const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
         return JSON.parse(response.text.trim());
     } catch (e) {
         return { suggestedTitle: 'New Report', extractedDate: new Date().toISOString().split('T')[0], summary: 'Extraction Failed', keyFindings: [] };
@@ -663,7 +664,7 @@ export const runStructuredExtractionAgent = async (reportContent: string, report
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -681,15 +682,15 @@ export const runMultiModalAnalysisAgent = async (promptText: string, files: Uplo
     const parts: any[] = [{ text: `Patient: ${patient.name}. ${promptText}` }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64Data } }));
 
-    // Try Pro first for best quality; fall back to Flash on rate limit
+    // Try Image model first for best quality; fall back to Flash on rate limit
     try {
-        const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: { parts } });
+        const response = await ai.models.generateContent({ model: AI_MODELS.IMAGE, contents: { parts } });
         return { id: Date.now(), sender: 'ai', type: 'text', text: response.text };
     } catch (error: any) {
         const errorString = String(error.message || error);
         if (errorString.includes('429') || errorString.toLowerCase().includes('resource_exhausted')) {
             console.warn('[MultiModal] Pro model rate-limited, falling back to Flash model...');
-            const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: { parts } });
+            const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: { parts } });
             const fallbackNote = '\n\n---\n*⚡ Note: This analysis used the faster Flash model due to high demand. Results may be slightly less detailed.*';
             return { id: Date.now(), sender: 'ai', type: 'text', text: (response.text || '') + fallbackNote };
         }

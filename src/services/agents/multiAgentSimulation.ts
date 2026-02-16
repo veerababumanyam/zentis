@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, MultiSpecialistReviewMessage, ClinicalDebateMessage, DebateParticipant, DebateTurn, SpecialistReport, UniversalSpecialistMessage } from '../../types';
 import * as expandedAgents from './expandedSpecialties';
 import * as subSpecialtyAgents from './subspecialtyAgents';
+import { AI_MODELS } from '../../config/aiModels';
 
 // Helper to prepare patient context
 const getPatientContext = (patient: Patient) => {
@@ -10,7 +11,7 @@ const getPatientContext = (patient: Patient) => {
     const meds = patient.currentStatus.medications.join(', ');
     const labs = patient.reports.filter(r => r.type === 'Lab').slice(0, 3).map(r => `${r.date}: ${typeof r.content === 'string' ? r.content.substring(0, 200) : 'See PDF'}`).join('\n');
     const echoes = patient.reports.filter(r => r.type === 'Echo').slice(0, 2).map(r => `${r.date}: ${typeof r.content === 'string' ? r.content : 'See PDF'}`).join('\n');
-    
+
     return `
     Patient: ${patient.name}, ${patient.age} ${patient.gender}.
     History: ${history}
@@ -22,38 +23,34 @@ const getPatientContext = (patient: Patient) => {
     `;
 };
 
-// Using gemini-3-pro-preview for complex multi-persona simulation
-const MODEL_NAME = 'gemini-3-pro-preview';
-const FLASH_MODEL = 'gemini-3-flash-preview'; // Used for speed in turns
+import { ALL_SPECIALTIES } from '../../config/medicalSpecialties';
 
 // --- 1. Identify Participants ---
-export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenAI): Promise<string[]> => {
+export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenAI, forceGrandRounds: boolean = false): Promise<string[]> => {
+    if (forceGrandRounds) {
+        return ALL_SPECIALTIES;
+    }
+
     const context = getPatientContext(patient);
-    
-    const availableSpecialties = [
-        "Cardiology", "Neurology", "Oncology", "Gastroenterology", "Pulmonology", 
-        "Endocrinology", "Orthopedics", "Dermatology", "Nephrology", "Hematology", 
-        "Rheumatology", "Infectious Disease", "Psychiatry", "Urology", 
-        "Ophthalmology", "Geriatrics"
-    ];
 
     const prompt = `Review the patient data and assemble a high-fidelity Medical Board.
-    Identify the 3-5 most critical medical specialties required for a comprehensive review.
+    Identify **ALL** relevant medical specialties required for a comprehensive review.
     
-    **Available Specialized Agents:** ${availableSpecialties.join(', ')}.
+    **Available Specialized Agents:** ${ALL_SPECIALTIES.join(', ')}.
     (You may also request others if strictly necessary, e.g., 'Surgery').
     
     **Rules:**
     1. Always include 'Cardiology' as the lead.
-    2. Select specialists based on specific comorbidities (e.g., CKD -> Nephrology, Diabetes -> Endocrinology, Frailty -> Geriatrics).
-    3. If the case is complex/undefined, include 'Internal Medicine' or 'DeepReasoning'.
+    2. Select specialists based on specific comorbidities (e.g., CKD -> Nephrology, Diabetes -> Endocrinology).
+    3. **DO NOT** limit the number of specialists. Include every voice that adds value to this case.
+    4. If the case is complex/undefined, include 'Internal Medicine' or 'DeepReasoning'.
     
     **Patient Context:** ${context}
     
     Return ONLY a JSON object with a single property 'specialties' which is an array of strings.`;
 
     const response = await ai.models.generateContent({
-        model: FLASH_MODEL,
+        model: AI_MODELS.FLASH,
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
@@ -66,7 +63,7 @@ export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenA
             }
         }
     });
-    
+
     const result = JSON.parse(response.text.trim());
     return result.specialties;
 };
@@ -89,7 +86,7 @@ const adaptSpecificAgentOutput = (specialty: string, agentOutput: any): Speciali
     if (agentOutput.impression) { // Neurology style
         findings += `\nImpression: ${agentOutput.impression}`;
     }
-    
+
     if (agentOutput.plan) {
         recs = agentOutput.plan;
     } else if (agentOutput.recommendations) {
@@ -113,7 +110,7 @@ const adaptSpecificAgentOutput = (specialty: string, agentOutput: any): Speciali
 
 export const generateSpecialistOpinion = async (patient: Patient, specialty: string, ai: GoogleGenAI): Promise<SpecialistReport> => {
     const s = specialty.toLowerCase();
-    
+
     // --- ROUTER TO SPECIFIC AGENTS ---
     // This ensures the "Board" uses the highly-tuned prompt logic for each domain
     let specificAgentResponse: any = null;
@@ -184,7 +181,7 @@ export const generateSpecialistOpinion = async (patient: Patient, specialty: str
     };
 
     const response = await ai.models.generateContent({
-        model: FLASH_MODEL,
+        model: AI_MODELS.FLASH,
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
@@ -226,7 +223,7 @@ export const generateBoardConsensus = async (patient: Patient, reports: Speciali
     };
 
     const response = await ai.models.generateContent({
-        model: MODEL_NAME, // Use Pro for synthesis
+        model: AI_MODELS.PRO, // Use Pro for synthesis
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
@@ -239,8 +236,8 @@ export const generateBoardConsensus = async (patient: Patient, reports: Speciali
 };
 
 // --- Legacy Wrapper for backwards compatibility ---
-export const runMultiSpecialistReviewAgent = async (patient: Patient, ai: GoogleGenAI): Promise<MultiSpecialistReviewMessage> => {
-    const specialties = await identifyBoardParticipants(patient, ai);
+export const runMultiSpecialistReviewAgent = async (patient: Patient, ai: GoogleGenAI, forceGrandRounds: boolean = false): Promise<MultiSpecialistReviewMessage> => {
+    const specialties = await identifyBoardParticipants(patient, ai, forceGrandRounds);
     const reports = await Promise.all(specialties.map(s => generateSpecialistOpinion(patient, s, ai)));
     const consensus = await generateBoardConsensus(patient, reports, ai);
 
@@ -261,12 +258,6 @@ export const runMultiSpecialistReviewAgent = async (patient: Patient, ai: Google
  */
 export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): Promise<{ topic: string, participants: DebateParticipant[] }> => {
     const context = getPatientContext(patient);
-    const availableSpecialties = [
-        "Cardiology", "Nephrology", "Endocrinology", "Geriatrics", "Pulmonology", 
-        "Gastroenterology", "Infectious Disease", "Neurology", "Oncology", 
-        "Psychiatry", "Rheumatology", "Hematology", "Clinical Pharmacy", "Palliative Care",
-        "Urology", "Ophthalmology", "Orthopedics", "Dermatology"
-    ];
 
     const prompt = `You are a Medical Simulation Director organizing a Grand Rounds debate. 
     **Patient Context:** ${context}
@@ -274,7 +265,7 @@ export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): 
     **Task:**
     1. Identify the most controversial, complex, or high-stakes clinical dilemma for this patient.
     2. Assemble a **comprehensive multidisciplinary board** of specialists to debate this.
-       - Choose from the following roles if relevant: ${availableSpecialties.join(', ')}.
+       - Choose from the following roles if relevant: ${ALL_SPECIALTIES.join(', ')}.
        - **DO NOT limit** the number of specialists to just 3. Include EVERY relevant voice.
        - Always include a "Moderator" (Chief of Medicine) to guide the discussion.
     
@@ -301,7 +292,7 @@ export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): 
     };
 
     const response = await ai.models.generateContent({
-        model: MODEL_NAME,
+        model: AI_MODELS.PRO,
         contents: prompt,
         config: { responseMimeType: 'application/json', responseSchema }
     });
@@ -313,13 +304,13 @@ export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): 
  * Step 2: Generate the next turn in the debate loop.
  */
 export const runNextDebateTurnAgent = async (
-    patient: Patient, 
-    transcript: DebateTurn[], 
-    participants: DebateParticipant[], 
-    topic: string, 
+    patient: Patient,
+    transcript: DebateTurn[],
+    participants: DebateParticipant[],
+    topic: string,
     ai: GoogleGenAI
 ): Promise<{ nextTurn: DebateTurn, consensusReached: boolean, consensusStatement: string | null }> => {
-    
+
     const context = getPatientContext(patient);
     const transcriptText = transcript.map(t => `${t.speaker} (${t.role}): ${t.text}`).join('\n');
     const participantList = participants.map(p => `${p.name} (${p.specialty})`).join(', ');
@@ -358,7 +349,7 @@ export const runNextDebateTurnAgent = async (
     };
 
     const response = await ai.models.generateContent({
-        model: FLASH_MODEL, // Use Flash for speed in the loop
+        model: AI_MODELS.FLASH, // Use Flash for speed in the loop
         contents: prompt,
         config: { responseMimeType: 'application/json', responseSchema, temperature: 0.7 }
     });
@@ -388,7 +379,7 @@ export const runClinicalDebateAgent = async (patient: Patient, ai: GoogleGenAI):
         title: `Grand Rounds Debate: ${patient.name}`,
         topic: init.topic,
         participants: init.participants,
-        transcript: [{ speaker: "System", role: "Moderator", text: "Initializing debate..."}],
+        transcript: [{ speaker: "System", role: "Moderator", text: "Initializing debate..." }],
         consensus: null,
         isLive: true
     };

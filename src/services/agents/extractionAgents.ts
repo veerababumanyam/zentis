@@ -10,6 +10,7 @@
  */
 
 import { GoogleGenAI, Type } from "@google/genai";
+import { AI_MODELS } from '../../config/aiModels';
 import type { MedicationDocument, LabResultDocument, VitalSignDocument, DiagnosisDocument } from '../databaseSchema';
 
 // --- TYPES ---
@@ -19,6 +20,8 @@ export interface ExtractionResult {
     labs: Omit<LabResultDocument, 'createdAt'>[];
     vitals: Omit<VitalSignDocument, 'createdAt'>[];
     diagnoses: Omit<DiagnosisDocument, 'createdAt'>[];
+    keyFindings?: string[];
+    unstructuredData?: Record<string, any>;
     rawExtractedText?: string;
     ocrConfidence?: number;
 }
@@ -29,6 +32,8 @@ const EXTRACTION_RESPONSE_SCHEMA = {
     properties: {
         rawExtractedText: { type: Type.STRING, description: 'The full text content extracted/OCR from the document' },
         ocrConfidence: { type: Type.NUMBER, description: 'Confidence score 0-1 for text extraction quality' },
+        keyFindings: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Important clinical findings that do not fit into meds/labs/vitals/diagnoses' },
+        unstructuredData: { type: Type.OBJECT, description: 'Any other structured data extracted from the report (e.g., procedure details, device settings)' },
         medications: {
             type: Type.ARRAY,
             items: {
@@ -115,6 +120,8 @@ Your task:
    - **Lab Results**: Test names, numeric values, units, reference ranges, dates, whether abnormal
    - **Vital Signs**: BP, HR, Respiratory Rate, Temperature, O2 Sat, Weight, Height, BMI with values and dates
    - **Diagnoses**: Condition names, ICD-10 codes if visible, status (active/resolved/historical), onset dates
+   - **Key Findings**: Important clinical findings that do NOT fit into the above categories (e.g., "Left ventricular hypertrophy", "No acute fracture").
+   - **Unstructured Data**: Any other useful structured info.
 
 Be thorough — extract EVERYTHING visible. For dates, use YYYY-MM-DD format. 
 If a value is unclear, make your best estimate and note low confidence.
@@ -123,7 +130,7 @@ Set ocrConfidence to a value between 0 and 1 indicating how confident you are in
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.IMAGE,
             contents: {
                 parts: [
                     { text: prompt },
@@ -142,6 +149,8 @@ Set ocrConfidence to a value between 0 and 1 indicating how confident you are in
             labs: result.labs || [],
             vitals: result.vitals || [],
             diagnoses: result.diagnoses || [],
+            keyFindings: result.keyFindings || [],
+            unstructuredData: result.unstructuredData || {},
             rawExtractedText: result.rawExtractedText || '',
             ocrConfidence: result.ocrConfidence || 0
         };
@@ -173,13 +182,15 @@ Extract the following entities into strict JSON:
 3. **Labs**: Discrete lab results with numeric values and units.
 4. **Vitals**: Vital signs with dates. For BP, use value=systolic, value2=diastolic.
 5. **Diagnoses**: New or confirmed diagnoses with ICD-10 codes if mentioned.
+6. **Key Findings**: Important clinical findings that do NOT fit into the above categories.
+7. **Unstructured Data**: Any other useful structured info.
 
 Use YYYY-MM-DD format for dates. Set ocrConfidence to 1.0 for text documents.
 Return empty arrays if no data found for a category.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -193,6 +204,8 @@ Return empty arrays if no data found for a category.`;
             labs: result.labs || [],
             vitals: result.vitals || [],
             diagnoses: result.diagnoses || [],
+            keyFindings: result.keyFindings || [],
+            unstructuredData: result.unstructuredData || {},
             rawExtractedText: result.rawExtractedText || textContent,
             ocrConfidence: 1.0
         };
@@ -221,6 +234,8 @@ Analyze ALL images as a single cohesive document and extract:
 3. **Labs**: All lab results with values and units
 4. **Vitals**: All vital signs
 5. **Diagnoses**: All diagnoses and conditions
+6. **Key Findings**: Important clinical findings that do NOT fit into the above categories.
+7. **Unstructured Data**: Any other useful structured info.
 
 Deduplicate entries that appear on multiple pages. Use YYYY-MM-DD for dates.
 Return empty arrays for categories with no data found.`;
@@ -232,7 +247,7 @@ Return empty arrays for categories with no data found.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.IMAGE,
             contents: { parts },
             config: {
                 responseMimeType: 'application/json',
@@ -246,6 +261,8 @@ Return empty arrays for categories with no data found.`;
             labs: result.labs || [],
             vitals: result.vitals || [],
             diagnoses: result.diagnoses || [],
+            keyFindings: result.keyFindings || [],
+            unstructuredData: result.unstructuredData || {},
             rawExtractedText: result.rawExtractedText || '',
             ocrConfidence: result.ocrConfidence || 0
         };

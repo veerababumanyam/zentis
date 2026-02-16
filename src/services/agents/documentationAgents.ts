@@ -3,6 +3,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, Message, ClinicalNote, AiPersonalizationSettings } from '../../types';
+import { AI_MODELS } from '../../config/aiModels';
 
 // --- HELPER FUNCTIONS ---
 const getReportText = (report: any): string | null => {
@@ -16,12 +17,12 @@ const getReportText = (report: any): string | null => {
 }
 
 export const runClinicalNoteGeneratorAgent = async (patient: Patient, chatHistory: Message[], ai: GoogleGenAI, aiSettings: AiPersonalizationSettings, transcript?: string): Promise<ClinicalNote> => {
-    
+
     // 1. Gather Context - Smart Report Comparison for Interval History
     // We group reports by type to compare the most recent vs. the previous one.
     const reportTypes = ['Echo', 'Lab', 'ECG', 'Cath', 'CTA', 'Device', 'HF Device'];
     let comparisonContext = "";
-    
+
     // Sort reports descending by date
     const sortedReports = [...patient.reports].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -30,12 +31,12 @@ export const runClinicalNoteGeneratorAgent = async (patient: Patient, chatHistor
         if (typeReports.length > 0) {
             const current = typeReports[0];
             const previous = typeReports[1]; // might be undefined if it's the only report
-            
+
             comparisonContext += `\n--- ${type.toUpperCase()} REPORTS ---\n`;
-            
+
             const currentText = current.aiSummary || getReportText(current)?.substring(0, 1000) || '[Image/Data - See full report]';
             comparisonContext += `CURRENT (${current.date}):\n${currentText}\n`;
-            
+
             if (previous) {
                 const prevText = previous.aiSummary || getReportText(previous)?.substring(0, 1000) || '[Image/Data - See full report]';
                 comparisonContext += `PREVIOUS (${previous.date}):\n${prevText}\n`;
@@ -49,7 +50,7 @@ export const runClinicalNoteGeneratorAgent = async (patient: Patient, chatHistor
 
     // Fallback if no specific typed reports found, just dump recent ones to ensure nothing is missed
     if (!comparisonContext) {
-        comparisonContext = sortedReports.slice(0, 5).map(r => 
+        comparisonContext = sortedReports.slice(0, 5).map(r =>
             `[${r.date}] ${r.type} - ${r.title}:\n${r.aiSummary || getReportText(r)?.substring(0, 300) || 'Image Data'}`
         ).join('\n\n');
     }
@@ -101,7 +102,7 @@ export const runClinicalNoteGeneratorAgent = async (patient: Patient, chatHistor
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',

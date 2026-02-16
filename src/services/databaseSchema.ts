@@ -36,6 +36,7 @@ export interface PatientDocument {
     currentCondition?: string;
     allergies?: string[];
     criticalAlerts?: string[];
+    consolidatedFindings?: string[]; // Aggregated findings from all reports
 
     createdAt: number;
     updatedAt: number;

@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, Message, TextMessage, TrendChartMessage, ReportComparisonMessage, ReportComparisonRow, TrendChartSeries, TrendChartDataPoint, Report, DifferentialDiagnosisMessage, DiagnosisItem, EjectionFractionTrendMessage, ArrhythmiaAnalysisMessage, BloodPressureAnalysisMessage, CardiacBiomarkerMessage, VitalTrendsMessage, SourceVerification } from '../../types';
 import { runReportComparisonAgent } from './utilityAgents';
+import { AI_MODELS } from '../../config/aiModels';
 
 // --- HELPER FUNCTIONS ---
 
@@ -14,30 +15,30 @@ const parseLabValue = (content: string, regex: RegExp): number | null => {
 // Robust parser that handles unit conversion (International -> US Standard)
 const parseLabValueWithUnits = (content: string, regex: RegExp, targetUnit: 'mg/dL' | 'mmol/L' | 'pg/mL' | 'ng/mL' | 'mEq/L' | 'mL/min'): number | null => {
     if (typeof content !== 'string') return null;
-    
+
     // Extend regex to capture potential unit if not strictly defined in input regex
     // We assume the input regex captures the number in group 1.
     // We look ahead for units.
     const match = content.match(regex);
     if (!match) return null;
-    
+
     let value = parseFloat(match[1]);
-    
+
     // Grab the text immediately following the match to check for units
     const postMatchStr = content.substring(match.index! + match[0].length).trim();
-    
+
     // --- CREATININE CONVERSION (umol/L -> mg/dL) ---
     if (targetUnit === 'mg/dL' && (regex.source.includes('Creatinine') || regex.source.includes('Cr'))) {
-        if (postMatchStr.match(/^(umol\/L|µmol\/L)/i) || (value > 20 && value < 1000)) { 
+        if (postMatchStr.match(/^(umol\/L|µmol\/L)/i) || (value > 20 && value < 1000)) {
             // If explicit unit match OR value is clearly in umol/L range (e.g. 80-120) vs mg/dL range (0.5-1.5)
             // Divide by 88.4
             return parseFloat((value / 88.4).toFixed(2));
         }
     }
-    
+
     // --- GLUCOSE/CHOLESTEROL CONVERSION (mmol/L -> mg/dL) ---
     // (Example logic, can be expanded if needed)
-    
+
     return value;
 };
 
@@ -55,8 +56,8 @@ const getReportText = (report: Report): string | null => {
 const findVerification = (term: string, reports: Report[]): SourceVerification | undefined => {
     const textReports = reports
         .filter(r => typeof r.content === 'string' || (r.content as any).rawText)
-        .sort((a,b) => b.date.localeCompare(a.date));
-    
+        .sort((a, b) => b.date.localeCompare(a.date));
+
     for (const report of textReports) {
         const content = typeof report.content === 'string' ? report.content : (report.content as any).rawText;
         if (content && content.toLowerCase().includes(term.toLowerCase())) {
@@ -92,7 +93,7 @@ export const runVitalTrendsAgent = async (patient: Patient, query: string, ai: G
             const sbp = parseInt(match[1], 10);
             const dbp = parseInt(match[2], 10);
             const hr = parseInt(match[3], 10);
-            
+
             sbpData.push({ date: log.date, value: sbp });
             dbpData.push({ date: log.date, value: dbp });
             hrData.push({ date: log.date, value: hr });
@@ -100,7 +101,7 @@ export const runVitalTrendsAgent = async (patient: Patient, query: string, ai: G
             // Critical Value Check
             if (sbp > 180) criticalAlerts += `- **CRITICAL: SBP ${sbp}** on ${log.date}. Hypertensive Crisis.\n`;
             else if (sbp < 90) criticalAlerts += `- **CRITICAL: SBP ${sbp}** on ${log.date}. Hypotension.\n`;
-            
+
             if (hr > 120) criticalAlerts += `- **CRITICAL: HR ${hr}** on ${log.date}. Significant Tachycardia.\n`;
             else if (hr < 40) criticalAlerts += `- **CRITICAL: HR ${hr}** on ${log.date}. Significant Bradycardia.\n`;
         }
@@ -111,7 +112,7 @@ export const runVitalTrendsAgent = async (patient: Patient, query: string, ai: G
         { name: 'Diastolic BP', unit: 'mmHg', data: dbpData },
         { name: 'Heart Rate', unit: 'bpm', data: hrData },
     ];
-    
+
     const prompt = `You are a cardiologist AI. Analyze the following time-series vital sign data for a patient and provide a concise clinical interpretation.
     
     **Patient Context:**
@@ -131,9 +132,9 @@ export const runVitalTrendsAgent = async (patient: Patient, query: string, ai: G
     `;
 
     try {
-        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt });
         const interpretation = response.text;
-        
+
         return {
             id: 0,
             sender: 'ai',
@@ -176,7 +177,7 @@ export const runTrendAnalysisAgent = async (patient: Patient, query: string, ai:
             const data: TrendChartDataPoint[] = [];
             labReports.forEach(report => {
                 if (typeof report.content !== 'string') return;
-                
+
                 let value: number | null;
                 if ((param as any).convert) {
                     value = parseLabValueWithUnits(report.content, param.regex, param.unit as any);
@@ -188,21 +189,21 @@ export const runTrendAnalysisAgent = async (patient: Patient, query: string, ai:
                     data.push({ date: report.date, value });
                     // Check for criticals based on threshold type
                     if (param.threshold.label === 'High' && value > param.threshold.value * 1.1) { // 10% buffer for critical vs elevated
-                         criticalAlerts += `- **CRITICAL: ${param.name} ${value}** (Target < ${param.threshold.value}) on ${report.date}.\n`;
+                        criticalAlerts += `- **CRITICAL: ${param.name} ${value}** (Target < ${param.threshold.value}) on ${report.date}.\n`;
                     }
                     if (param.threshold.label === 'Low' && value < param.threshold.value * 0.8) {
-                         criticalAlerts += `- **CRITICAL: ${param.name} ${value}** (Target > ${param.threshold.value}) on ${report.date}.\n`;
+                        criticalAlerts += `- **CRITICAL: ${param.name} ${value}** (Target > ${param.threshold.value}) on ${report.date}.\n`;
                     }
                 }
             });
             if (data.length > 0) {
                 // Attach referenceRange to the series
-                series.push({ 
-                    name: param.name, 
-                    unit: param.unit, 
-                    data, 
-                    threshold: param.threshold, 
-                    referenceRange: param.referenceRange 
+                series.push({
+                    name: param.name,
+                    unit: param.unit,
+                    data,
+                    threshold: param.threshold,
+                    referenceRange: param.referenceRange
                 });
             }
         }
@@ -211,7 +212,7 @@ export const runTrendAnalysisAgent = async (patient: Patient, query: string, ai:
     if (series.length === 0) {
         return { id: 0, sender: 'ai', type: 'text', text: `I couldn't find data for the requested lab values. I can track trends for BNP, eGFR, Potassium, and Creatinine.` };
     }
-    
+
     let interpretation = "### AI Interpretation\n";
     if (criticalAlerts) {
         interpretation += `\n**ALERT:** Critical values detected:\n${criticalAlerts}\n`;
@@ -226,14 +227,14 @@ export const runTrendAnalysisAgent = async (patient: Patient, query: string, ai:
         }
     }
     const egfrSeries = series.find(s => s.name === 'eGFR');
-     if (egfrSeries && egfrSeries.data.length > 1) {
+    if (egfrSeries && egfrSeries.data.length > 1) {
         const first = egfrSeries.data[0].value;
         const last = egfrSeries.data[egfrSeries.data.length - 1].value;
         if (last < first * 0.9) {
             interpretation += `- **eGFR shows a declining trend**, indicating potential progression of cardiorenal syndrome. Recommend assessing volume status and considering diuretic adjustment.`;
         }
     }
-    
+
     const latestReport = labReports[labReports.length - 1];
 
     return {
@@ -261,7 +262,7 @@ export const runReportComparisonAgentFromHistory = async (patient: Patient, quer
 
     const reportsToCompare = patient.reports.filter(r => r.type === reportType && getReportText(r) !== null)
         .sort((a, b) => b.date.localeCompare(a.date));
-    
+
     if (reportsToCompare.length < 2) {
         return { id: 0, sender: 'ai', type: 'text', text: `There are not enough historical ${reportType} reports to perform a comparison.` };
     }
@@ -270,8 +271,8 @@ export const runReportComparisonAgentFromHistory = async (patient: Patient, quer
 };
 
 export const runDifferentialDiagnosisAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<DifferentialDiagnosisMessage | TextMessage> => {
-    const latestEcho = patient.reports.filter(r => r.type === 'Echo').sort((a,b) => b.date.localeCompare(a.date))[0];
-    const latestLab = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const latestEcho = patient.reports.filter(r => r.type === 'Echo').sort((a, b) => b.date.localeCompare(a.date))[0];
+    const latestLab = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a, b) => b.date.localeCompare(a.date))[0];
 
     const prompt = `You are a world-class cardiologist acting as a diagnostic assistant. The user wants a differential diagnosis for a patient.
     **Patient:** ${patient.name}, a ${patient.age}-year-old ${patient.gender}.
@@ -320,7 +321,7 @@ export const runDifferentialDiagnosisAgent = async (patient: Patient, query: str
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -328,23 +329,23 @@ export const runDifferentialDiagnosisAgent = async (patient: Patient, query: str
             }
         });
         const jsonStr = response.text.trim();
-        
+
         if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
-             throw new Error("AI did not return valid JSON.");
+            throw new Error("AI did not return valid JSON.");
         }
         const result = JSON.parse(jsonStr) as { diagnoses: DiagnosisItem[], summary: string };
 
         if (!result || !result.diagnoses || !result.summary) {
             throw new Error("Invalid JSON response from AI.");
         }
-        
+
         // EVIDENCE MODE: Post-processing to attach verifications
         result.diagnoses = result.diagnoses.map(d => {
             let verification: SourceVerification | undefined;
-            
+
             // Heuristic verification search based on rationale keywords
             if (d.rationale.includes('Echo') || d.rationale.includes('LVEF') || d.rationale.includes('valvular') || d.rationale.includes('wall motion')) {
-                verification = { reportId: latestEcho?.id || '', quote: getReportText(latestEcho)?.substring(0, 100) + '...' || 'Echo Report' }; 
+                verification = { reportId: latestEcho?.id || '', quote: getReportText(latestEcho)?.substring(0, 100) + '...' || 'Echo Report' };
                 if (latestEcho) {
                     const lvef = getReportText(latestEcho)?.match(/LVEF:\s*(.*?)\./i)?.[0];
                     if (lvef) verification.quote = lvef;
@@ -399,12 +400,12 @@ export const runEjectionFractionTrendAgent = async (patient: Patient, query: str
     const timeDiffYears = timeDiffMillis / (1000 * 60 * 60 * 24 * 365.25);
     const valueDiff = lastPoint.value - firstPoint.value;
     const annualChange = timeDiffYears > 0.25 ? valueDiff / timeDiffYears : 0;
-    
-    const latestLabReport = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a,b) => b.date.localeCompare(a.date))[0];
+
+    const latestLabReport = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a, b) => b.date.localeCompare(a.date))[0];
     const latestBnp = latestLabReport && typeof latestLabReport.content === 'string' ? parseLabValue(latestLabReport.content, /BNP:\s*(\d+(\.\d+)?)/i) : null;
 
     try {
-        const model = 'gemini-2.5-flash';
+        const model = 'gemini-3-flash-preview';
         const prompt = `You are a predictive cardiologist AI. Your task is to analyze a patient's LVEF trend and other clinical data to predict their risk of heart failure hospitalization.
         
         **Patient Context:**
@@ -427,7 +428,7 @@ export const runEjectionFractionTrendAgent = async (patient: Patient, query: str
             - The 'rationale' must explain your reasoning, citing the provided data.
         
         Provide the output in the specified JSON format.`;
-        
+
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -481,7 +482,7 @@ export const runEjectionFractionTrendAgent = async (patient: Patient, query: str
 };
 
 export const runArrhythmiaAnalysisAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<ArrhythmiaAnalysisMessage | TextMessage> => {
-    const holterReport = patient.reports.filter(r => r.type === 'ECG' && typeof r.content === 'string' && r.title.toLowerCase().includes('holter')).sort((a,b) => b.date.localeCompare(a.date))[0];
+    const holterReport = patient.reports.filter(r => r.type === 'ECG' && typeof r.content === 'string' && r.title.toLowerCase().includes('holter')).sort((a, b) => b.date.localeCompare(a.date))[0];
 
     if (!holterReport || typeof holterReport.content !== 'string') {
         return { id: 0, sender: 'ai', type: 'text', text: "No Holter monitor or event monitor report was found to analyze arrhythmia patterns." };
@@ -503,7 +504,7 @@ export const runArrhythmiaAnalysisAgent = async (patient: Patient, query: string
         3.  Identify the overall recognized arrhythmia pattern.
         4.  Provide a concise, AI-powered risk assessment based on the findings.
         5.  Return the output in the specified JSON format.`;
-        
+
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -527,7 +528,7 @@ export const runArrhythmiaAnalysisAgent = async (patient: Patient, query: string
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -547,14 +548,14 @@ export const runArrhythmiaAnalysisAgent = async (patient: Patient, query: string
             riskAssessment: result.riskAssessment,
             suggestedAction: { type: 'view_report', label: `View Holter Report (${holterReport.date})`, reportId: holterReport.id }
         };
-    } catch(error) {
+    } catch (error) {
         console.error("Error in runArrhythmiaAnalysisAgent:", error);
         return { id: 0, sender: 'ai', type: 'text', text: "Sorry, I encountered an error while analyzing the arrhythmia report." };
     }
 };
 
 export const runBloodPressureAnalysisAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<BloodPressureAnalysisMessage | TextMessage> => {
-    const bpLogReport = patient.reports.filter(r => r.title.toLowerCase().includes('bp log')).sort((a,b) => b.date.localeCompare(a.date))[0];
+    const bpLogReport = patient.reports.filter(r => r.title.toLowerCase().includes('bp log')).sort((a, b) => b.date.localeCompare(a.date))[0];
 
     if (!bpLogReport || typeof bpLogReport.content !== 'string') {
         return { id: 0, sender: 'ai', type: 'text', text: "No home blood pressure log was found for analysis." };
@@ -575,7 +576,7 @@ export const runBloodPressureAnalysisAgent = async (patient: Patient, query: str
         2.  Provide a concise AI risk assessment based on the patterns observed (e.g., nocturnal dipping status, variability).
         3.  Provide clear, actionable recommendations.
         4.  Return the output in the specified JSON format.`;
-        
+
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -598,7 +599,7 @@ export const runBloodPressureAnalysisAgent = async (patient: Patient, query: str
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -618,19 +619,19 @@ export const runBloodPressureAnalysisAgent = async (patient: Patient, query: str
             recommendations: result.recommendations,
             suggestedAction: { type: 'view_report', label: `View BP Log (${bpLogReport.date})`, reportId: bpLogReport.id }
         };
-    } catch(error) {
+    } catch (error) {
         console.error("Error in runBloodPressureAnalysisAgent:", error);
         return { id: 0, sender: 'ai', type: 'text', text: "Sorry, I encountered an error while analyzing the blood pressure data." };
     }
 };
 
 export const runCardiacBiomarkerAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<CardiacBiomarkerMessage | TextMessage> => {
-    const labReports = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a,b) => a.date.localeCompare(b.date));
+    const labReports = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a, b) => a.date.localeCompare(b.date));
 
     if (labReports.length === 0) {
         return { id: 0, sender: 'ai', type: 'text', text: "No lab reports found to analyze cardiac biomarkers." };
     }
-    
+
     const reportsForPrompt = labReports.slice(-5).map(r => `Report Date: ${r.date}\n${getReportText(r)}\n---\n`).join('\n');
 
     try {
@@ -650,7 +651,7 @@ export const runCardiacBiomarkerAgent = async (patient: Patient, query: string, 
         4.  Extract historical data points to create trend data for a sparkline.
         5.  Write a final synthesized summary of the overall biomarker picture.
         6.  Return the output in the specified JSON format.`;
-        
+
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -676,7 +677,7 @@ export const runCardiacBiomarkerAgent = async (patient: Patient, query: string, 
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -695,7 +696,7 @@ export const runCardiacBiomarkerAgent = async (patient: Patient, query: string, 
             summary: result.summary,
             suggestedAction: { type: 'view_report', label: `View Latest Labs (${labReports[labReports.length - 1].date})`, reportId: labReports[labReports.length - 1].id }
         };
-    } catch(error) {
+    } catch (error) {
         console.error("Error in runCardiacBiomarkerAgent:", error);
         return { id: 0, sender: 'ai', type: 'text', text: "Sorry, I encountered an error while analyzing cardiac biomarkers." };
     }
@@ -707,17 +708,17 @@ export const runEcgAnalysisAgent = async (patient: Patient, query: string, ai: G
         .sort((a, b) => b.date.localeCompare(a.date));
 
     if (ecgReports.length === 0) {
-        return { 
-            id: 0, 
-            sender: 'ai', 
-            type: 'text', 
-            text: "No ECG reports with interpretable text were found for this patient." 
+        return {
+            id: 0,
+            sender: 'ai',
+            type: 'text',
+            text: "No ECG reports with interpretable text were found for this patient."
         };
     }
 
     const latestEcg = ecgReports[0];
     const content = latestEcg.content as string;
-    
+
     const rhythm = content.match(/Rhythm:\s*(.*)/i)?.[1] || 'Not specified';
     const rate = content.match(/Heart Rate:\s*(.*)/i)?.[1] || 'Not specified';
     const prInterval = content.match(/PR Interval:\s*(.*)/i)?.[1] || 'N/A';

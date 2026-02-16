@@ -12,7 +12,8 @@ import {
   Timestamp,
   writeBatch,
   deleteDoc,
-  where // NEW
+  where, // NEW
+  arrayUnion // NEW
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -223,6 +224,7 @@ export const addReportMetadata = async (patientId: string, report: Report) => {
     extractionStatus: 'pending',
     aiSummary: report.aiSummary,
     keyFindings: report.keyFindings,
+    unstructuredData: report.unstructuredData, // NEW
     storagePath: contentUrl,
     downloadUrl: contentUrl,
     createdAt: Date.now()
@@ -244,7 +246,9 @@ export const saveExtractedData = async (
     medications: Omit<MedicationDocument, 'createdAt'>[],
     labs: Omit<LabResultDocument, 'createdAt'>[],
     vitals: Omit<VitalSignDocument, 'createdAt'>[],
-    diagnoses: Omit<DiagnosisDocument, 'createdAt'>[]
+    diagnoses: Omit<DiagnosisDocument, 'createdAt'>[],
+    keyFindings?: string[],   // NEW
+    unstructuredData?: Record<string, any> // NEW
   }
 ) => {
   const batch = writeBatch(db);
@@ -273,9 +277,25 @@ export const saveExtractedData = async (
     batch.set(ref, { ...dx, sourceReportId: reportId, createdAt: Date.now() });
   });
 
-  // 5. Update Report Status (use set+merge so the batch doesn't fail if the doc is still being created)
+  // 5. Update Report Status & Metadata (use set+merge)
   const reportRef = doc(db, PATIENTS_COLLECTION, patientId, 'reports', reportId);
-  batch.set(reportRef, { extractionStatus: 'completed' }, { merge: true });
+  const reportUpdate: any = { extractionStatus: 'completed' };
+
+  if (data.keyFindings && data.keyFindings.length > 0) {
+    reportUpdate.keyFindings = data.keyFindings;
+
+    // 6. Update Patient Consolidated Findings (NEW)
+    // Aggregates key findings from this report into the patient's master list
+    const patientRef = doc(db, PATIENTS_COLLECTION, patientId);
+    batch.set(patientRef, {
+      consolidatedFindings: arrayUnion(...data.keyFindings)
+    }, { merge: true });
+  }
+  if (data.unstructuredData && Object.keys(data.unstructuredData).length > 0) {
+    reportUpdate.unstructuredData = data.unstructuredData;
+  }
+
+  batch.set(reportRef, reportUpdate, { merge: true });
 
   await batch.commit();
 };

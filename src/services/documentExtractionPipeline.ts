@@ -15,6 +15,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import { AI_MODELS } from '../config/aiModels';
 import type { Report } from '../types';
 import type { ExtractionResult } from './agents/extractionAgents';
 import { runImageExtractionAgent, runTextExtractionAgent } from './agents/extractionAgents';
@@ -164,18 +165,20 @@ export const runExtractionPipeline = async (
         // --- PHASE 2: SAVE TO FIRESTORE ---
         updateProgress('saving', 'Saving extracted clinical data to your health profile...');
 
-        const hasData = 
+        const hasData =
             extractionResult.medications.length > 0 ||
             extractionResult.labs.length > 0 ||
             extractionResult.vitals.length > 0 ||
             extractionResult.diagnoses.length > 0;
 
-        if (hasData) {
+        if (hasData || (extractionResult.keyFindings && extractionResult.keyFindings.length > 0)) {
             await saveExtractedData(patientId, reportId, {
                 medications: extractionResult.medications,
                 labs: extractionResult.labs,
                 vitals: extractionResult.vitals,
-                diagnoses: extractionResult.diagnoses
+                diagnoses: extractionResult.diagnoses,
+                keyFindings: extractionResult.keyFindings,
+                unstructuredData: extractionResult.unstructuredData
             });
         }
 
@@ -195,7 +198,7 @@ export const runExtractionPipeline = async (
 
     } catch (error: any) {
         console.error(`Extraction pipeline failed for report ${reportId}:`, error);
-        
+
         // Update status to failed
         try {
             await updateReportExtractionStatus(patientId, reportId, 'failed');
@@ -220,7 +223,7 @@ export const loadExtractedPatientData = async (patientId: string): Promise<Extra
 
 const buildExtractionSummary = (result: ExtractionResult): string => {
     const parts: string[] = [];
-    
+
     if (result.medications.length > 0) {
         parts.push(`${result.medications.length} medication(s)`);
     }
@@ -232,6 +235,9 @@ const buildExtractionSummary = (result: ExtractionResult): string => {
     }
     if (result.diagnoses.length > 0) {
         parts.push(`${result.diagnoses.length} diagnosis/diagnoses`);
+    }
+    if (result.keyFindings && result.keyFindings.length > 0) {
+        parts.push(`${result.keyFindings.length} key finding(s)`);
     }
 
     if (parts.length === 0) {

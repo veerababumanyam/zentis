@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, Message, TextMessage, InterventionalCardiologyMessage, EpDeviceReportMessage, AdvancedHeartFailureMessage, CtaAnalysisMessage, NeurologyMessage, OncologyMessage, UniversalSpecialistMessage, Report, AiPersonalizationSettings } from '../../types';
 import { runImageAnalysisAgent } from './utilityAgents';
+import { AI_MODELS } from '../../config/aiModels';
 
 // --- HELPER FUNCTIONS ---
 const getReportText = (report: Report): string | null => {
@@ -24,7 +25,7 @@ const getReportText = (report: Report): string | null => {
 // Ideally, the old ones are preserved. I will re-include them to ensure file integrity.
 
 export const runInterventionalCardiologyAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<InterventionalCardiologyMessage | TextMessage> => {
-    const cathReport = patient.reports.filter(r => r.type === 'Cath').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const cathReport = patient.reports.filter(r => r.type === 'Cath').sort((a, b) => b.date.localeCompare(a.date))[0];
 
     if (!cathReport || !getReportText(cathReport)) {
         return { id: 0, sender: 'ai', type: 'text', text: "No coronary angiogram report was found for this patient to analyze." };
@@ -35,7 +36,7 @@ export const runInterventionalCardiologyAgent = async (patient: Patient, query: 
         **Patient:** ${patient.name}.
         **Report:** ${getReportText(cathReport)}
         Extract lesions, estimate SYNTAX score, and provide a recommendation (PCI vs CABG vs Meds). Return JSON.`;
-        
+
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -69,7 +70,7 @@ export const runInterventionalCardiologyAgent = async (patient: Patient, query: 
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema }
         });
@@ -87,13 +88,13 @@ export const runInterventionalCardiologyAgent = async (patient: Patient, query: 
             summary: result.summary,
             suggestedAction: { type: 'view_report', label: `View Angiogram Report`, reportId: cathReport.id }
         };
-    } catch(error) {
+    } catch (error) {
         return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing cath report." };
     }
 };
 
 export const runEpAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<EpDeviceReportMessage | TextMessage> => {
-    const deviceReport = patient.reports.filter(r => r.type === 'Device').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const deviceReport = patient.reports.filter(r => r.type === 'Device').sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!deviceReport) return { id: 0, sender: 'ai', type: 'text', text: "No device report found." };
 
     try {
@@ -101,20 +102,20 @@ export const runEpAgent = async (patient: Patient, query: string, ai: GoogleGenA
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
-                deviceSummary: { type: Type.OBJECT, properties: { therapiesDelivered: {type: Type.STRING}, atpDelivered: {type: Type.STRING}, shocksDelivered: {type: Type.STRING} } },
-                arrhythmiaSummary: { type: Type.OBJECT, properties: { at_afBurden: {type: Type.STRING}, vt_ns_Episodes: {type: Type.STRING}, vfEpisodes: {type: Type.STRING} } },
-                deviceStatus: { type: Type.OBJECT, properties: { battery: {type: Type.STRING}, leadImpedance: {type: Type.STRING}, sensing: {type: Type.STRING}, pacingThreshold: {type: Type.STRING} } },
+                deviceSummary: { type: Type.OBJECT, properties: { therapiesDelivered: { type: Type.STRING }, atpDelivered: { type: Type.STRING }, shocksDelivered: { type: Type.STRING } } },
+                arrhythmiaSummary: { type: Type.OBJECT, properties: { at_afBurden: { type: Type.STRING }, vt_ns_Episodes: { type: Type.STRING }, vfEpisodes: { type: Type.STRING } } },
+                deviceStatus: { type: Type.OBJECT, properties: { battery: { type: Type.STRING }, leadImpedance: { type: Type.STRING }, sensing: { type: Type.STRING }, pacingThreshold: { type: Type.STRING } } },
                 aiAssessment: { type: Type.STRING }
             }
         };
-        const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
+        const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
         const result = JSON.parse(response.text.trim());
         return { id: 0, sender: 'ai', type: 'ep_device_report', title: `Device Interrogation: ${patient.name}`, ...result, suggestedAction: { type: 'view_report', label: 'View Report', reportId: deviceReport.id } };
-    } catch(e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing device report." }; }
+    } catch (e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing device report." }; }
 };
 
 export const runAdvancedHfAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<AdvancedHeartFailureMessage | TextMessage> => {
-    const hfDeviceReport = patient.reports.filter(r => r.type === 'HF Device').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const hfDeviceReport = patient.reports.filter(r => r.type === 'HF Device').sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!hfDeviceReport) return { id: 0, sender: 'ai', type: 'text', text: "No LVAD report found." };
 
     try {
@@ -123,18 +124,18 @@ export const runAdvancedHfAgent = async (patient: Patient, query: string, ai: Go
             type: Type.OBJECT,
             properties: {
                 deviceType: { type: Type.STRING },
-                parameters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { parameter: {type: Type.STRING}, value: {type: Type.STRING}, trend: {type: Type.STRING, enum: ['Increasing', 'Decreasing', 'Stable']}, status: {type: Type.STRING, enum: ['Normal', 'Concerning', 'Critical']} } } },
-                aiAssessment: { type: Type.OBJECT, properties: { concern: {type: Type.STRING}, rationale: {type: Type.STRING}, recommendation: {type: Type.STRING} } }
+                parameters: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { parameter: { type: Type.STRING }, value: { type: Type.STRING }, trend: { type: Type.STRING, enum: ['Increasing', 'Decreasing', 'Stable'] }, status: { type: Type.STRING, enum: ['Normal', 'Concerning', 'Critical'] } } } },
+                aiAssessment: { type: Type.OBJECT, properties: { concern: { type: Type.STRING }, rationale: { type: Type.STRING }, recommendation: { type: Type.STRING } } }
             }
         };
-        const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
+        const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
         const result = JSON.parse(response.text.trim());
         return { id: 0, sender: 'ai', type: 'advanced_heart_failure', title: `LVAD Analysis`, ...result, suggestedAction: { type: 'view_report', label: 'View Report', reportId: hfDeviceReport.id } };
-    } catch(e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing LVAD report." }; }
+    } catch (e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing LVAD report." }; }
 };
 
 export const runCtaAnalysisAgent = async (patient: Patient, query: string, ai: GoogleGenAI, aiSettings: AiPersonalizationSettings): Promise<CtaAnalysisMessage | TextMessage> => {
-    const ctaReport = patient.reports.filter(r => r.type === 'CTA').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const ctaReport = patient.reports.filter(r => r.type === 'CTA').sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!ctaReport) return { id: 0, sender: 'ai', type: 'text', text: "No CTA report found." };
     if (!getReportText(ctaReport)) return { id: 0, sender: 'ai', type: 'text', text: "CTA report has no text content." };
 
@@ -143,33 +144,33 @@ export const runCtaAnalysisAgent = async (patient: Patient, query: string, ai: G
         const responseSchema = {
             type: Type.OBJECT,
             properties: {
-                calciumScore: { type: Type.OBJECT, properties: { score: {type: Type.STRING}, interpretation: {type: Type.STRING} } },
-                lesionAnalysis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { vessel: {type: Type.STRING}, segment: {type: Type.STRING}, plaqueType: {type: Type.STRING, enum: ['Non-calcified', 'Mixed', 'Calcified', 'None']}, stenosisSeverity: {type: Type.STRING, enum: ['Minimal', 'Mild', 'Moderate', 'Severe']}, cadRads: {type: Type.STRING} } } },
-                graftAnalysis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { graftName: {type: Type.STRING}, status: {type: Type.STRING}, details: {type: Type.STRING} } } },
+                calciumScore: { type: Type.OBJECT, properties: { score: { type: Type.STRING }, interpretation: { type: Type.STRING } } },
+                lesionAnalysis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { vessel: { type: Type.STRING }, segment: { type: Type.STRING }, plaqueType: { type: Type.STRING, enum: ['Non-calcified', 'Mixed', 'Calcified', 'None'] }, stenosisSeverity: { type: Type.STRING, enum: ['Minimal', 'Mild', 'Moderate', 'Severe'] }, cadRads: { type: Type.STRING } } } },
+                graftAnalysis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { graftName: { type: Type.STRING }, status: { type: Type.STRING }, details: { type: Type.STRING } } } },
                 otherCardiacFindings: { type: Type.STRING },
                 extracardiacFindings: { type: Type.STRING },
                 overallImpression: { type: Type.STRING },
                 recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
             }
         };
-        const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
+        const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt, config: { responseMimeType: 'application/json', responseSchema } });
         const result = JSON.parse(response.text.trim());
         return { id: 0, sender: 'ai', type: 'cta_analysis', title: `CTA Analysis`, ...result, suggestedAction: { type: 'view_report', label: 'View CTA', reportId: ctaReport.id } };
-    } catch(e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing CTA report." }; }
+    } catch (e) { return { id: 0, sender: 'ai', type: 'text', text: "Error analyzing CTA report." }; }
 };
 
 // --- NEW SPECIALTY AGENTS ---
 
 export const runNeurologyAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<NeurologyMessage | TextMessage> => {
     // Find relevant neuro reports (MRI, CT Head, EEG)
-    const neuroReports = patient.reports.filter(r => 
+    const neuroReports = patient.reports.filter(r =>
         r.type === 'MRI' || r.title.toLowerCase().includes('brain') || r.title.toLowerCase().includes('head') || r.title.toLowerCase().includes('eeg')
-    ).sort((a,b) => b.date.localeCompare(a.date));
+    ).sort((a, b) => b.date.localeCompare(a.date));
 
     if (neuroReports.length === 0) {
         return { id: 0, sender: 'ai', type: 'text', text: "No neurology-related imaging (MRI/CT) or EEG reports found." };
     }
-    
+
     const targetReport = neuroReports[0];
     const reportText = getReportText(targetReport);
 
@@ -208,7 +209,7 @@ export const runNeurologyAgent = async (patient: Patient, query: string, ai: Goo
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Pro for complex neuro reasoning
+            model: AI_MODELS.PRO, // Pro for complex neuro reasoning
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema }
         });
@@ -230,14 +231,14 @@ export const runNeurologyAgent = async (patient: Patient, query: string, ai: Goo
 };
 
 export const runOncologyAgent = async (patient: Patient, query: string, ai: GoogleGenAI): Promise<OncologyMessage | TextMessage> => {
-    const oncoReports = patient.reports.filter(r => 
+    const oncoReports = patient.reports.filter(r =>
         r.type === 'Pathology' || r.title.toLowerCase().includes('biopsy') || r.title.toLowerCase().includes('oncology')
-    ).sort((a,b) => b.date.localeCompare(a.date));
+    ).sort((a, b) => b.date.localeCompare(a.date));
 
     if (oncoReports.length === 0) {
         return { id: 0, sender: 'ai', type: 'text', text: "No pathology or oncology reports found." };
     }
-    
+
     const targetReport = oncoReports[0];
 
     try {
@@ -284,7 +285,7 @@ export const runOncologyAgent = async (patient: Patient, query: string, ai: Goog
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: AI_MODELS.PRO,
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema }
         });
@@ -349,7 +350,7 @@ export const runUniversalSpecialistAgent = async (patient: Patient, query: strin
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Flash is sufficient for general queries
+            model: AI_MODELS.FLASH, // Flash is sufficient for general queries
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema }
         });

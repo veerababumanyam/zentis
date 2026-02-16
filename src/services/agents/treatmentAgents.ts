@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, Message, TextMessage, GdmtChecklistMessage, GdmtChecklistItem, ContraindicationMessage, ContraindicationItem, DosageOptimizationMessage, DosageOptimizationItem, Report, AiPersonalizationSettings, PrescriptionMessage, SourceVerification, MedicalHistoryItem } from '@/types';
+import { AI_MODELS } from '../../config/aiModels';
 
 // --- HELPER FUNCTIONS ---
 
@@ -281,7 +282,7 @@ export const runMedicationSafetyAgent = async (patient: Patient, query: string, 
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -382,7 +383,7 @@ ${getReportText(latestEcho) || 'N/A'}
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -502,7 +503,7 @@ ${findings || 'No specific findings provided.'}
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: contents,
             config: {
                 systemInstruction: systemInstruction,
@@ -578,7 +579,7 @@ export const runPrescriptionGeneratorAgent = async (patient: Patient, medication
         };
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',

@@ -10,38 +10,28 @@ const reportQueryRegex = /\b(show|view|display|pull up|find|get)\b.*\b(report|ec
 const reportAnalysisRegex = /\b(analyze|analyse|summarize|summarise|explain|interpret|read|extract|review|what does|tell me about)\b.*\b(report|ecg|ekg|echo|lab|x-ray|angiogram|interrogation|log|cath|device|imaging|meds|medication|pathology|mri|biopsy|eye|ophthalmology|document|scan|image|photo|picture|file|result)\b/i;
 
 // --- DOMAIN CLASSIFIER ---
+import { ALL_SPECIALTIES, SPECIALTY_DESCRIPTIONS } from '../config/medicalSpecialties';
+import { AI_MODELS } from '../config/aiModels';
+
 const determineSpecialty = async (query: string, ai: GoogleGenAI): Promise<string> => {
     // If query is very short or generic, default to General
     if (query.length < 5) return 'General';
+
+    const specialtyOptions = ALL_SPECIALTIES.map(s => `- ${s} (for ${SPECIALTY_DESCRIPTIONS[s] || s})`).join('\n    ');
 
     const prompt = `Classify this medical query into a Domain/Specialty.
     Query: "${query}"
     
     Options:
-    - Cardiology (for heart, BP, ECG, Cath, HFrEF, Arrhythmia)
-    - Neurology (for brain, stroke, seizure, headache, EEG, MRI Brain)
-    - Oncology (for cancer, tumor, biopsy, chemo, staging)
-    - Gastroenterology (for stomach, liver, GI, colonoscopy, endoscopy, abdominal pain)
-    - Pulmonology (for lungs, breathing, asthma, copd, pneumonia, chest x-ray)
-    - Endocrinology (for diabetes, thyroid, hormones, metabolism)
-    - Orthopedics (for bones, joints, fractures, spine, pain)
-    - Dermatology (for skin, rash, lesions)
-    - Nephrology (for kidney, renal, creatinine, dialysis)
-    - Hematology (for blood, anemia, platelets, clotting)
-    - Rheumatology (for joints, autoimmune, lupus, arthritis)
-    - Infectious Disease (for infection, fever, antibiotics, sepsis, culture)
-    - Psychiatry (for depression, anxiety, mood, mental health)
-    - Urology (for prostate, bladder, uti, kidney stone)
-    - Ophthalmology (for eye, vision, retina, cataract)
-    - Geriatrics (for elderly, frailty, falls, dementia)
+    ${specialtyOptions}
     - DeepReasoning (for complex diagnostic dilemmas, 'think', 'reason', 'analyze complex case')
     - General (for vitals, labs, history, summary, medications)
     
-    Return ONLY the Option Name.`;
+    Return ONLY the Option Name within the list above.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview', // Low latency for routing
+            model: AI_MODELS.FLASH, // Low latency for routing
             contents: prompt
         });
         return response.text.trim();
@@ -77,7 +67,7 @@ const findReportByQuery = async (query: string, reports: Report[], ai: GoogleGen
         const reportList = reports.map(r => ({ id: r.id, type: r.type, date: r.date, title: r.title }));
         const prompt = `Identify the single most relevant report ID for this analysis query: "${query}".\nReports: ${JSON.stringify(reportList)}\nReturn JSON: { "reportId": "string | null" }`;
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: AI_MODELS.FLASH,
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema: { type: Type.OBJECT, properties: { reportId: { type: Type.STRING } }, required: ['reportId'] } }
         });
@@ -112,9 +102,10 @@ export const agentRouter = async (query: string, patient: Patient, aiSettings: A
     const ai = new GoogleGenAI({ apiKey: aiSettings.apiKey });
 
     // Check for "Board Review" or complex queries to trigger the Multi-Agent System
-    if (query.toLowerCase().includes('board') || query.toLowerCase().includes('consult') || query.toLowerCase().includes('review')) {
+    if (query.toLowerCase().includes('board') || query.toLowerCase().includes('consult') || query.toLowerCase().includes('review') || query.toLowerCase().includes('grand rounds')) {
         console.log(`[AgentRouter] Triggering Multi-Agent Board Review`);
-        return await runMultiSpecialistReviewAgent(patient, ai);
+        const forceGrandRounds = query.toLowerCase().includes('grand rounds');
+        return await runMultiSpecialistReviewAgent(patient, ai, forceGrandRounds);
     }
 
     // Check for report-lookup queries (only useful if patient has reports)
@@ -195,7 +186,7 @@ ${!hasReports ? '\nNote: This patient has not uploaded any health documents yet.
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.FLASH,
             contents: `${systemPrompt}\n\nUser Question: ${query}`
         });
 

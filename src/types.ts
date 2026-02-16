@@ -22,6 +22,7 @@ export interface Report {
     content: string | { type: 'image'; url: string; } | { type: 'pdf'; url: string; rawText: string; } | { type: 'dicom'; url: string; } | { type: 'link'; url: string; metadata?: any } | { type: 'live_session'; transcript: string; biomarkers: any[] };
     aiSummary?: string;
     keyFindings?: string[];
+    unstructuredData?: Record<string, any>; // NEW: For capturing data that doesn't fit into standard schemas
     rawTextForAnalysis?: string | null; // NEW: For AI extraction
     isDeleted?: boolean; // NEW: Soft delete flag
     deletedAt?: number | null; // NEW: Timestamp of deletion
@@ -54,6 +55,7 @@ export interface Patient {
     allergies: string[];
     medicalHistory: MedicalHistoryItem[];
     criticalAlerts?: string[];
+    consolidatedFindings?: string[]; // NEW: Aggregated findings from all reports
     appointmentTime: string; // Format 'HH:MM'
     pendingLabs?: string[]; // NEW: For "Result Pending" visual cue
     currentStatus: {

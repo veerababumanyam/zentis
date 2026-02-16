@@ -1,14 +1,15 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, TextMessage, AiPersonalizationSettings, SmartSummaryMessage } from '../../types';
+import { AI_MODELS } from '../../config/aiModels';
 
 const getPersonalizationInstructions = (aiSettings: AiPersonalizationSettings): string => {
-  const instructions: string[] = [];
-  if (aiSettings.tone === 'formal') instructions.push('Adopt a formal, clinical tone.');
-  if (aiSettings.tone === 'collaborative') instructions.push('Adopt a collaborative, conversational tone.');
-  if (aiSettings.verbosity === 'concise') instructions.push('Keep the response concise and to the point.');
-  if (aiSettings.verbosity === 'detailed') instructions.push('Provide a detailed, comprehensive response.');
-  return instructions.join(' ');
+    const instructions: string[] = [];
+    if (aiSettings.tone === 'formal') instructions.push('Adopt a formal, clinical tone.');
+    if (aiSettings.tone === 'collaborative') instructions.push('Adopt a collaborative, conversational tone.');
+    if (aiSettings.verbosity === 'concise') instructions.push('Keep the response concise and to the point.');
+    if (aiSettings.verbosity === 'detailed') instructions.push('Provide a detailed, comprehensive response.');
+    return instructions.join(' ');
 };
 
 export const runSmartSummaryAgent = async (patient: Patient, ai: GoogleGenAI, aiSettings: AiPersonalizationSettings): Promise<SmartSummaryMessage> => {
@@ -42,14 +43,14 @@ export const runSmartSummaryAgent = async (patient: Patient, ai: GoogleGenAI, ai
         };
     }
 
-    const latestEcho = patient.reports.filter(r => r.type === 'Echo').sort((a,b) => b.date.localeCompare(a.date))[0];
-    const latestLab = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a,b) => b.date.localeCompare(a.date))[0];
+    const latestEcho = patient.reports.filter(r => r.type === 'Echo').sort((a, b) => b.date.localeCompare(a.date))[0];
+    const latestLab = patient.reports.filter(r => r.type === 'Lab' && typeof r.content === 'string').sort((a, b) => b.date.localeCompare(a.date))[0];
 
     // Prepare structured data context
     const conditions = patient.medicalHistory.map(h => h.description).join('; ');
     const alerts = patient.criticalAlerts && patient.criticalAlerts.length > 0 ? patient.criticalAlerts.join('; ') : 'None';
     const vitals = patient.currentStatus.vitals;
-    
+
     const prompt = `You are a world-class cardiologist AI. Your task is to generate a "Smart Summary" for a patient, specifically focusing on Medical Conditions, Vital Signs, and Critical Alerts. ${personalization}
 
     **Patient Profile:**
@@ -135,14 +136,14 @@ export const runSmartSummaryAgent = async (patient: Patient, ai: GoogleGenAI, ai
     };
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: AI_MODELS.FLASH,
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
             responseSchema
         }
     });
-    
+
     const result = JSON.parse(response.text.trim());
 
     return {
@@ -166,13 +167,13 @@ export const runMedicationReviewAgent = async (patient: Patient, query: string, 
 
     **Instructions:**
     List the current medications and add a brief note about their purpose in this patient's context.`;
-    
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    
-    return { 
-        id: 0, 
-        sender: 'ai', 
-        type: 'text', 
+
+    const response = await ai.models.generateContent({ model: AI_MODELS.FLASH, contents: prompt });
+
+    return {
+        id: 0,
+        sender: 'ai',
+        type: 'text',
         text: `### Medication Review for ${patient.name}\n${response.text}`
     };
 };

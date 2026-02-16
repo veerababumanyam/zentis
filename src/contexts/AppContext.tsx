@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import type { AppState, Action } from './reducer';
+import type { ActiveOperation, OperationKind } from './reducer';
 import type { Patient, Message, TextMessage, Report, UploadableFile, Feedback, AiModel, ToastNotification, ClinicalDebateMessage, MultiSpecialistReviewMessage, ClinicalTask } from '../types';
 import { appReducer, initialState } from './reducer';
 import { fetchPatients, updatePatient, addReportMetadata, saveExtractedData, createPatient, fetchExtractedData, getPatient, softDeleteReport, restoreReport, permanentlyDeleteReport } from '../services/ehrService';
@@ -83,6 +84,7 @@ interface AppContextType {
         toggleDashboard: () => void;
         toggleLiveMode: () => void;
         toggleSettings: () => void; // NEW
+        cancelActiveOperation: () => void;
     }
 }
 
@@ -376,6 +378,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const toggleSettings = useCallback(() => dispatch({ type: 'TOGGLE_SETTINGS' }), []); // NEW
     const toggleNoteModal = useCallback(() => dispatch({ type: 'TOGGLE_NOTE_MODAL' }), []);
 
+    // Operation tracking ref — keeps current opId accessible in async closures
+    const activeOpRef = React.useRef<number>(0);
+
+    const startOperation = useCallback((kind: OperationKind): number => {
+        const opId = Date.now();
+        activeOpRef.current = opId;
+        dispatch({ type: 'SET_ACTIVE_OPERATION', payload: { id: opId, kind, cancelRequested: false } });
+        dispatch({ type: 'SET_CHAT_STATUS', payload: null });
+        return opId;
+    }, []);
+
+    const isOpCancelled = useCallback((opId: number): boolean => {
+        return activeOpRef.current !== opId;
+    }, []);
+
+    const finishOperation = useCallback((opId: number) => {
+        // Only clear if this op is still the active one
+        if (activeOpRef.current === opId) {
+            dispatch({ type: 'SET_ACTIVE_OPERATION', payload: null });
+            dispatch({ type: 'SET_CHAT_STATUS', payload: null });
+        }
+    }, []);
+
+    const cancelActiveOperation = useCallback(() => {
+        activeOpRef.current = 0; // invalidate any in-flight op
+        dispatch({ type: 'REQUEST_CANCEL_OPERATION' });
+        // Clear the "Stopped" text after a short delay
+        setTimeout(() => {
+            dispatch({ type: 'SET_CHAT_STATUS', payload: null });
+            dispatch({ type: 'SET_ACTIVE_OPERATION', payload: null });
+        }, 1500);
+    }, []);
+
     const handleSaveNotes = useCallback(async (patientId: string, notes: string) => {
         const patient = allPatients.find(p => p.id === patientId);
         if (!patient) return;
@@ -548,12 +583,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const patient = allPatients.find(p => p.id === patientIdToUse);
         if (!patient) return;
 
+        const opId = startOperation('chat');
+
         dispatch({ type: 'UPDATE_QUESTION_HISTORY', payload: { patientId: patientIdToUse, question: query } });
         dispatch({ type: 'SET_CHAT_LOADING', payload: true });
 
         try {
             if (files.length > 0) {
                 // Step 1: Read raw file data for the API call
+                dispatch({ type: 'SET_CHAT_STATUS', payload: 'Reading files…' });
                 const processedFiles: UploadableFile[] = await Promise.all(files.map(async file => {
                     const isDicom = file.name.toLowerCase().endsWith('.dcm') || file.type === 'application/dicom';
                     if (isDicom) return renderDicomToJpegForUpload(file);
@@ -566,12 +604,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     return { name: file.name, mimeType: file.type, base64Data: dataUrl.split(',')[1], previewUrl: dataUrl };
                 }));
 
-                // Step 2: Upload to Firebase Storage & generate thumbnails (parallel, non-blocking for API call)
+                if (isOpCancelled(opId)) return;
+
+                // Step 2: Upload to Firebase Storage & generate thumbnails
+                dispatch({ type: 'SET_CHAT_STATUS', payload: 'Uploading attachments…' });
                 const storageEnhancedFiles: UploadableFile[] = await Promise.all(processedFiles.map(async (pf, i) => {
                     let storageUrl = '';
                     let thumbnailBase64 = '';
                     try {
-                        // Upload original file to Firebase Storage
                         const blob = await fetch(`data:${pf.mimeType};base64,${pf.base64Data}`).then(r => r.blob());
                         const fileObj = new File([blob], pf.name || `upload_${i}`, { type: pf.mimeType });
                         storageUrl = await uploadChatAttachment(fileObj, patientIdToUse);
@@ -579,7 +619,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         console.warn(`[Chat] Failed to upload file ${pf.name} to storage:`, uploadErr);
                     }
                     try {
-                        // Generate tiny thumbnail for localStorage persistence
                         if (pf.mimeType.startsWith('image/')) {
                             thumbnailBase64 = await generateThumbnail(pf.base64Data, pf.mimeType);
                         }
@@ -589,19 +628,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     return { ...pf, storageUrl, thumbnailBase64 };
                 }));
 
-                // Step 3: Add user message to chat (with full base64 for current session rendering)
+                if (isOpCancelled(opId)) return;
+
+                // Step 3: Add user message to chat
                 const userMsg = { id: Date.now(), sender: 'user' as const, type: 'multi_file' as const, text: query, files: storageEnhancedFiles };
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: userMsg } });
 
-                // Step 4: Call Gemini API with full base64 data
+                // Step 4: Call Gemini API
+                dispatch({ type: 'SET_CHAT_STATUS', payload: 'Analyzing documents…' });
                 const aiMsg = await apiManager.runMultiModalAnalysisAgent(query, processedFiles, patient, aiSettings);
+
+                if (isOpCancelled(opId)) return;
+
                 aiMsg.id = Date.now() + 1;
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: aiMsg } });
             } else {
                 const userMsg = { id: Date.now(), sender: 'user' as const, type: 'text' as const, text: query };
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: userMsg } });
 
-                // --- DEEP THINKING CHECK ---
+                dispatch({ type: 'SET_CHAT_STATUS', payload: 'Thinking…' });
+
                 let aiMsg;
                 if (query.toLowerCase().startsWith('(thinking...)')) {
                     const cleanQuery = query.replace('(Thinking...)', '').trim();
@@ -610,10 +656,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     aiMsg = await apiManager.getAiResponse(query, patient, aiSettings);
                 }
 
+                if (isOpCancelled(opId)) return;
+
                 aiMsg.id = Date.now() + 1;
                 dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: aiMsg } });
             }
         } catch (error: any) {
+            if (isOpCancelled(opId)) return;
             console.error("Send message error:", error);
             const isMissingKey = error instanceof MissingApiKeyError || error?.name === 'MissingApiKeyError';
             const errorStr = String(error.message || error);
@@ -635,8 +684,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dispatch({ type: 'ADD_MESSAGE', payload: { patientId: patientIdToUse, message: errorMsg } });
         } finally {
             dispatch({ type: 'SET_CHAT_LOADING', payload: false });
+            finishOperation(opId);
         }
-    }, [selectedPatientId, allPatients, aiSettings, showToast]);
+    }, [selectedPatientId, allPatients, aiSettings, showToast, startOperation, isOpCancelled, finishOperation]);
 
     const handleCreateAndAnalyze = useCallback(async (data: any) => {
         if (!user) return;
@@ -773,6 +823,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleRunMultiSpecialistReview = useCallback(async () => {
         if (!selectedPatient) return;
+
+        const opId = startOperation('board');
+        dispatch({ type: 'SET_CHAT_LOADING', payload: true });
+
         const userMsg: TextMessage = { id: Date.now(), sender: 'user', type: 'text', text: "Run a full Multi-Specialist Review board on my case." };
         dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: userMsg } });
 
@@ -788,27 +842,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
 
         try {
+            dispatch({ type: 'SET_CHAT_STATUS', payload: 'Identifying specialists…' });
             const specialties = await apiManager.identifyBoardParticipants(selectedPatient, aiSettings);
-            for (const specialty of specialties) {
-                const report = await apiManager.generateSpecialistReport(selectedPatient, specialty, aiSettings);
+
+            for (let i = 0; i < specialties.length; i++) {
+                if (isOpCancelled(opId)) {
+                    currentMessage = { ...currentMessage, isLive: false, title: `${currentMessage.title} (Stopped)` };
+                    dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
+                    return;
+                }
+                dispatch({ type: 'SET_CHAT_STATUS', payload: `Consulting ${specialties[i]}… (${i + 1}/${specialties.length})` });
+                const report = await apiManager.generateSpecialistReport(selectedPatient, specialties[i], aiSettings);
                 currentMessage = { ...currentMessage, specialistReports: [...currentMessage.specialistReports, report] };
                 dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
                 await new Promise(resolve => setTimeout(resolve, 800));
             }
+
+            if (isOpCancelled(opId)) {
+                currentMessage = { ...currentMessage, isLive: false, title: `${currentMessage.title} (Stopped)` };
+                dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
+                return;
+            }
+
+            dispatch({ type: 'SET_CHAT_STATUS', payload: 'Synthesizing consensus…' });
             const consensus = await apiManager.consolidateBoardReports(selectedPatient, currentMessage.specialistReports, aiSettings);
             currentMessage = { ...currentMessage, isLive: false, consolidatedReport: consensus };
             dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
 
         } catch (error: any) {
+            if (isOpCancelled(opId)) return;
             const errorMessage = error.message || 'Failed to run review.';
             showToast(errorMessage, 'error');
             const errorMsg: TextMessage = { id: Date.now() + 2, sender: 'ai', type: 'text', text: `Sorry, unable to complete the review. ${errorMessage}` };
             dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: errorMsg } });
+        } finally {
+            dispatch({ type: 'SET_CHAT_LOADING', payload: false });
+            finishOperation(opId);
         }
-    }, [selectedPatient, showToast]);
+    }, [selectedPatient, showToast, startOperation, isOpCancelled, finishOperation]);
 
     const handleRunClinicalDebate = useCallback(async () => {
         if (!selectedPatient) return;
+
+        const opId = startOperation('critics');
+        dispatch({ type: 'SET_CHAT_LOADING', payload: true });
+
         const userMsg: TextMessage = { id: Date.now(), sender: 'user', type: 'text', text: "Start a Grand Rounds debate for this case." };
         dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: userMsg } });
 
@@ -827,6 +905,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: placeholderDebate } });
 
         try {
+            dispatch({ type: 'SET_CHAT_STATUS', payload: 'Initializing debate…' });
             const initData = await apiManager.initializeClinicalDebate(selectedPatient, aiSettings);
             let currentDebateState: ClinicalDebateMessage = {
                 ...placeholderDebate,
@@ -842,7 +921,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             let consensusReached = false;
 
             while (!consensusReached && turns < MAX_TURNS) {
+                if (isOpCancelled(opId)) {
+                    currentDebateState = { ...currentDebateState, isLive: false, consensus: 'Debate stopped by user.' };
+                    dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentDebateState } });
+                    return;
+                }
                 turns++;
+                dispatch({ type: 'SET_CHAT_STATUS', payload: `Running debate turn ${turns}…` });
                 const result = await apiManager.runNextDebateTurn(selectedPatient, currentDebateState.transcript, currentDebateState.participants, currentDebateState.topic, aiSettings);
                 currentDebateState = {
                     ...currentDebateState,
@@ -861,11 +946,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
 
         } catch (error: any) {
+            if (isOpCancelled(opId)) return;
             const errorMessage = error.message || 'Failed to run debate.';
             showToast(errorMessage, 'error');
             dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: { ...placeholderDebate, title: 'Debate Error', isLive: false, topic: errorMessage } } });
+        } finally {
+            dispatch({ type: 'SET_CHAT_LOADING', payload: false });
+            finishOperation(opId);
         }
-    }, [selectedPatient, showToast]);
+    }, [selectedPatient, showToast, startOperation, isOpCancelled, finishOperation]);
 
     const handleAnalyzeSingleReport = useCallback((reportId: string) => handleAnalyzeReports([reportId]), [handleAnalyzeReports]);
 
@@ -882,9 +971,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             handleRunMultiSpecialistReview, handleRunClinicalDebate, handleUpdateTasks,
             loadExtractedData: loadExtractedDataFn,
             extractedData,
-            extractionProgress
+            extractionProgress,
+            cancelActiveOperation,
+            handleRestoreReport,
+            handlePermanentDeleteReport,
         }
-    }), [state, selectedPatient, messages, enterApp, selectPatient, setSearchQuery, handleSaveNotes, handleAddReport, handleCreateAndAnalyze, toggleHuddleModal, selectPatientFromHuddle, togglePerformanceModal, toggleConsultationModal, setViewingReport, openFeedbackForm, closeFeedbackForm, addFeedback, updateAiSettings, handleSendMessage, handleAnalyzeReports, handleAnalyzeSingleReport, handleCompareReports, handleGeneratePrescription, showToast, removeToast, setMobileView, togglePatientList, toggleDashboard, toggleLiveMode, handleGenerateClinicalNote, toggleNoteModal, handleRunMultiSpecialistReview, handleRunClinicalDebate, handleUpdateTasks, loadExtractedDataFn, extractedData, extractionProgress]);
+    }), [state, selectedPatient, messages, enterApp, selectPatient, setSearchQuery, handleSaveNotes, handleAddReport, handleCreateAndAnalyze, toggleHuddleModal, selectPatientFromHuddle, togglePerformanceModal, toggleConsultationModal, setViewingReport, openFeedbackForm, closeFeedbackForm, addFeedback, updateAiSettings, handleSendMessage, handleAnalyzeReports, handleAnalyzeSingleReport, handleCompareReports, handleGeneratePrescription, showToast, removeToast, setMobileView, togglePatientList, toggleDashboard, toggleLiveMode, handleGenerateClinicalNote, toggleNoteModal, handleRunMultiSpecialistReview, handleRunClinicalDebate, handleUpdateTasks, loadExtractedDataFn, extractedData, extractionProgress, cancelActiveOperation]);
 
     return (
         <AppContext.Provider value={value}>

@@ -72,7 +72,7 @@ const App: React.FC = () => {
     if (loading) {
         return (
             <ThemeProvider>
-                <div className="h-screen w-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#020617]">
+                <div className="h-screen w-screen flex items-center justify-center bg-app">
                     <ModalLoader />
                 </div>
             </ThemeProvider>
@@ -103,7 +103,7 @@ const App: React.FC = () => {
             <div className="h-screen w-screen relative overflow-hidden font-sans text-gray-800 dark:text-gray-200 selection:bg-blue-500/30">
 
                 {/* Ambient Background Layer */}
-                <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8fafc] dark:bg-[#020617]">
+                <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-app">
                     <div className="liquid-blob top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-400/20 dark:bg-blue-600/20 mix-blend-multiply dark:mix-blend-screen filter blur-3xl"></div>
                     <div className="liquid-blob top-[20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-purple-400/20 dark:bg-purple-600/20 mix-blend-multiply dark:mix-blend-screen filter blur-3xl animation-delay-2000"></div>
                     <div className="liquid-blob bottom-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-teal-400/20 dark:bg-teal-600/20 mix-blend-multiply dark:mix-blend-screen filter blur-3xl animation-delay-4000"></div>

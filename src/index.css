@@ -1,3 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Theme Tokens ─────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-bg-app: 248 250 252;       /* #f8fafc  slate-50   */
+    --color-bg-surface: 255 255 255;   /* #ffffff  white      */
+    --color-bg-surface-alt: 241 245 249; /* #f1f5f9  slate-100 */
+    --color-border: 226 232 240;       /* #e2e8f0  slate-200  */
+    --color-text-primary: 15 23 42;    /* #0f172a  slate-900  */
+    --color-text-secondary: 100 116 139; /* #64748b slate-500 */
+  }
+
+  .dark {
+    --color-bg-app: 2 6 23;            /* #020617  slate-950  */
+    --color-bg-surface: 15 23 42;      /* #0f172a  slate-900  */
+    --color-bg-surface-alt: 30 41 59;  /* #1e293b  slate-800  */
+    --color-border: 51 65 85;          /* #334155  slate-700  */
+    --color-text-primary: 248 250 252; /* #f8fafc  slate-50   */
+    --color-text-secondary: 148 163 184; /* #94a3b8 slate-400 */
+  }
+}
+
+/* Utility classes consuming the tokens */
+@layer utilities {
+  .bg-app       { background-color: rgb(var(--color-bg-app)); }
+  .bg-surface   { background-color: rgb(var(--color-bg-surface)); }
+  .bg-surface-alt { background-color: rgb(var(--color-bg-surface-alt)); }
+  .border-theme { border-color: rgb(var(--color-border)); }
+  .text-primary { color: rgb(var(--color-text-primary)); }
+  .text-secondary { color: rgb(var(--color-text-secondary)); }
+}

@@ -1,6 +1,14 @@
 
 import type { Patient, Message, Feedback, AiPersonalizationSettings, DailyHuddle, Report, ToastNotification, ClinicalNote } from '../types';
 
+export type OperationKind = 'chat' | 'board' | 'critics';
+
+export interface ActiveOperation {
+    id: number;
+    kind: OperationKind;
+    cancelRequested: boolean;
+}
+
 export interface AppState {
     isAppLoading: boolean;
     allPatients: Patient[];
@@ -11,6 +19,10 @@ export interface AppState {
     questionHistories: Record<string, string[]>;
     isChatLoading: boolean;
     recommendedQuestions: string[];
+
+    // Operation tracking for status + cancel
+    activeOperation: ActiveOperation | null;
+    chatStatusText: string | null;
 
     feedbackHistory: Feedback[];
     aiSettings: AiPersonalizationSettings;
@@ -75,6 +87,9 @@ export type Action =
     | { type: 'SET_NOTE_GENERATING'; payload: boolean }
     | { type: 'TOGGLE_SETTINGS' } // NEW
     | { type: 'ENTER_APP' } // NEW
+    | { type: 'SET_ACTIVE_OPERATION'; payload: ActiveOperation | null }
+    | { type: 'REQUEST_CANCEL_OPERATION' }
+    | { type: 'SET_CHAT_STATUS'; payload: string | null }
     | { type: 'UPDATE_REPORT_EXTRACTED_TEXT'; payload: { patientId: string; reportId: string; rawTextForAnalysis: string } };
 
 export const initialState: AppState = {
@@ -86,6 +101,8 @@ export const initialState: AppState = {
     questionHistories: {},
     isChatLoading: true,
     recommendedQuestions: [],
+    activeOperation: null,
+    chatStatusText: null,
     feedbackHistory: [],
     aiSettings: { verbosity: 'default', tone: 'default' },
     isHuddleModalOpen: false,
@@ -257,6 +274,13 @@ export const appReducer = (state: AppState, action: Action): AppState => {
             return { ...state, isLandingPage: false };
         case 'TOGGLE_SETTINGS':
             return { ...state, isSettingsOpen: !state.isSettingsOpen };
+        case 'SET_ACTIVE_OPERATION':
+            return { ...state, activeOperation: action.payload };
+        case 'REQUEST_CANCEL_OPERATION':
+            if (!state.activeOperation) return state;
+            return { ...state, activeOperation: { ...state.activeOperation, cancelRequested: true }, isChatLoading: false, chatStatusText: 'Stopped' };
+        case 'SET_CHAT_STATUS':
+            return { ...state, chatStatusText: action.payload };
         case 'UPDATE_REPORT_EXTRACTED_TEXT': {
             const { patientId: pid, reportId: rid, rawTextForAnalysis: text } = action.payload;
             return {

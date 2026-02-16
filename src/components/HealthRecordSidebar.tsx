@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { DocumentIcon } from './icons/DocumentIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { SearchIcon } from './icons/SearchIcon';
@@ -31,9 +32,12 @@ const formatDate = (dateString: string) => {
 export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { state, actions } = useAppContext();
     const { selectedPatient, isPatientListCollapsed } = state;
+    const { userProfile, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const [searchTerm, setSearchTerm] = useState('');
     const [isUploading, setIsUploading] = useState(false);
+    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+    const accountMenuRef = useRef<HTMLDivElement>(null);
 
     // Filtering & Selection State
     const [activeFilter, setActiveFilter] = useState<string>('All');
@@ -43,6 +47,25 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
     const [deletedReports, setDeletedReports] = useState<Report[]>([]);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteMode, setDeleteMode] = useState<'soft' | 'permanent'>('soft');
+
+    // Close account menu on outside click or Escape
+    useEffect(() => {
+        if (!isAccountMenuOpen) return;
+        const handleClick = (e: MouseEvent) => {
+            if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+                setIsAccountMenuOpen(false);
+            }
+        };
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsAccountMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handleClick);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleClick);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [isAccountMenuOpen]);
 
     // Reset selection when patient changes
     useEffect(() => {
@@ -176,7 +199,7 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
     return (
         <div className="flex flex-col h-full overflow-hidden relative">
             {/* Header / Profile */}
-            <header className={`z-20 flex flex-col p-4 transition-all ${isPatientListCollapsed ? 'items-center' : ''} bg-[#f8fafc] dark:bg-[#020617]`}>
+            <header className={`z-20 flex flex-col p-4 transition-all ${isPatientListCollapsed ? 'items-center' : ''} bg-app`}>
                 <div className="flex items-center justify-between w-full mb-4">
                     <div className="flex items-center space-x-3">
                         {onBack && !isPatientListCollapsed && (
@@ -184,11 +207,60 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
                                 <ChevronLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </button>
                         )}
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {selectedPatient.photoURL ? (
-                                <img src={selectedPatient.photoURL} alt={selectedPatient.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <UserIcon className="w-6 h-6 text-white" />
+                        {/* Account avatar + dropdown */}
+                        <div className="relative" ref={accountMenuRef}>
+                            <button
+                                onClick={() => setIsAccountMenuOpen(prev => !prev)}
+                                className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center flex-shrink-0 overflow-hidden ring-2 ring-transparent hover:ring-indigo-400/50 transition-all focus:outline-none focus:ring-indigo-400/60"
+                                aria-label="Account menu"
+                                title="Account menu"
+                            >
+                                {userProfile?.photoURL ? (
+                                    <img src={userProfile.photoURL} alt={userProfile.displayName || 'Account'} className="w-full h-full object-cover" />
+                                ) : (
+                                    <UserIcon className="w-6 h-6 text-white" />
+                                )}
+                            </button>
+
+                            {/* Account dropdown menu */}
+                            {isAccountMenuOpen && (
+                                <div className="absolute left-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                                    {/* User info header */}
+                                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{userProfile?.displayName || 'User'}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userProfile?.email}</p>
+                                    </div>
+
+                                    <div className="py-1">
+                                        {/* Profile / Settings */}
+                                        <button
+                                            onClick={() => { setIsAccountMenuOpen(false); actions.toggleSettings(); }}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            <SettingsIcon className="w-4 h-4 text-gray-400" />
+                                            <span>Profile &amp; Settings</span>
+                                        </button>
+
+                                        {/* Theme toggle */}
+                                        <button
+                                            onClick={() => { toggleTheme(); }}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            {theme === 'light' ? <MoonIcon className="w-4 h-4 text-gray-400" /> : <SunIcon className="w-4 h-4 text-gray-400" />}
+                                            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="border-t border-gray-100 dark:border-gray-800 py-1">
+                                        <button
+                                            onClick={async () => { setIsAccountMenuOpen(false); try { await logout(); } catch { actions.showToast('Failed to log out.', 'error'); } }}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                            <span>Log Out</span>
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
                         {!isPatientListCollapsed && (
@@ -198,14 +270,6 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
                             </div>
                         )}
                     </div>
-                    {!isPatientListCollapsed && (
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                        >
-                            {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                        </button>
-                    )}
                 </div>
 
                 {!isPatientListCollapsed && (

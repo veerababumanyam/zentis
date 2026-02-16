@@ -18,8 +18,8 @@ import { CalculatorIcon } from './icons/CalculatorIcon';
 
 export const ChatWindow: React.FC = () => {
   const { state, actions } = useAppContext();
-  const { selectedPatient: patient, messages, isChatLoading, recommendedQuestions } = state;
-  const { handleSendMessage, openFeedbackForm, setViewingReport, setMobileView, toggleLiveMode, handleGenerateClinicalNote, handleRunMultiSpecialistReview, handleRunClinicalDebate } = actions;
+  const { selectedPatient: patient, messages, isChatLoading, recommendedQuestions, activeOperation, chatStatusText } = state;
+  const { handleSendMessage, openFeedbackForm, setViewingReport, setMobileView, toggleLiveMode, handleGenerateClinicalNote, handleRunMultiSpecialistReview, handleRunClinicalDebate, cancelActiveOperation } = actions;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -191,6 +191,21 @@ export const ChatWindow: React.FC = () => {
                 <ClipboardCheckIcon className="w-5 h-5" />
                 <span className="text-[10px] font-medium hidden lg:inline">Report</span>
               </button>
+
+              {/* Stop button — visible only during active operations */}
+              {activeOperation && (
+                <>
+                  <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-1 hidden lg:block"></div>
+                  <button
+                    onClick={cancelActiveOperation}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors gap-0.5 animate-pulse"
+                    title="Stop current operation"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                    <span className="text-[10px] font-bold hidden lg:inline">Stop</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -211,7 +226,27 @@ export const ChatWindow: React.FC = () => {
               onContentResize={scrollToBottom}
             />
           ))}
-          {isChatLoading && <MessageBubble message={{ id: 0, sender: 'ai', type: 'text', text: '...' }} isLoading={true} />}
+          {/* Ephemeral status bubble — shows meaningful phase text during operations */}
+          {chatStatusText && (
+            <div className="flex items-start space-x-3 opacity-80">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-teal-400 flex items-center justify-center shadow-md">
+                <SparklesIcon className="w-4 h-4 text-white" />
+              </div>
+              <div className="glass-panel rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 flex items-center space-x-2">
+                {chatStatusText !== 'Stopped' && (
+                  <svg className="w-4 h-4 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                )}
+                {chatStatusText === 'Stopped' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                )}
+                <span>{chatStatusText}</span>
+              </div>
+            </div>
+          )}
+          {isChatLoading && !chatStatusText && <MessageBubble message={{ id: 0, sender: 'ai', type: 'text', text: '...' }} isLoading={true} />}
           <div id="messages-end" ref={messagesEndRef} />
         </div>
       </div>

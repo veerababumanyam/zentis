@@ -1,20 +1,20 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-export const deleteAccount = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
+export const deleteAccount = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError(
             "unauthenticated",
             "The function must be called while authenticated."
         );
     }
 
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const db = admin.firestore();
     const storage = admin.storage();
-    
+
     // Use the default bucket
     const bucket = storage.bucket();
 
@@ -30,7 +30,7 @@ export const deleteAccount = functions.https.onCall(async (data, context) => {
         // Delete 'patients/{uid}' document and all its subcollections (recursive)
         // This is the "Me" patient record.
         const patientDocRef = db.collection("patients").doc(uid);
-        
+
         // Check if it exists first
         const patientDoc = await patientDocRef.get();
         if (patientDoc.exists) {
@@ -40,15 +40,12 @@ export const deleteAccount = functions.https.onCall(async (data, context) => {
         }
 
         // 2. Delete Storage Files
-        // All user files are stored under 'users/{uid}/...'
-        // or potentially 'patients/{pid}/...' but currently the client uploads to '.../uploads'.
-        // Let's assume a structure. 
-        // Based on `storageService.ts` (implied), we should look for where files are stored.
-        // Usually it's `uploads/{uid}` or `users/{uid}`.
-        // Let's try to delete both prefixes if unsure, or just 'users/{uid}' as per plan.
-        
-        await bucket.deleteFiles({ prefix: `users/${uid}/` });
-        console.log(`Deleted storage files for ${uid}`);
+        try {
+            await bucket.deleteFiles({ prefix: `users/${uid}/` });
+            console.log(`Deleted storage files for ${uid}`);
+        } catch (e) {
+            console.warn(`Error deleting storage files for ${uid} (might be empty):`, e);
+        }
 
         // 3. Delete Auth User
         await admin.auth().deleteUser(uid);
@@ -57,7 +54,7 @@ export const deleteAccount = functions.https.onCall(async (data, context) => {
         return { success: true, message: "Account deleted successfully" };
     } catch (error) {
         console.error("Error deleting account:", error);
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "internal",
             "Failed to delete account. Please try again later."
         );

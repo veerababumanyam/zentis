@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zentis-cache-v2';
+const CACHE_NAME = 'zentis-cache-v3';
 const URLS_TO_CACHE = [
     '/',
     '/index.html',
@@ -14,7 +14,6 @@ const URLS_TO_CACHE = [
 
 // Install Event - Cache Files
 self.addEventListener('install', (event) => {
-    // Activate new service worker immediately (don't wait for old one to be released)
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -25,7 +24,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate Event - Clean up old caches and take control immediately
+// Activate Event - Clean up old caches
 self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
@@ -41,53 +40,50 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch Event - Serve from cache, fall back to network
+// Fetch Event - Network First for HTML, Cache First for assets
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Skip cross-origin requests entirely (API calls, CDN resources, Firebase Storage)
-    // Let the browser handle them natively — avoids null response errors
-    if (url.origin !== self.location.origin) {
+    // Skip cross-origin requests
+    if (url.origin !== self.location.origin) return;
+    if (event.request.method !== 'GET') return;
+
+    // Network First strategy for HTML navigation requests
+    if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    // Cache the successful network response
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                    return response;
+                })
+                .catch(() => {
+                    // Fallback to cache if network fails
+                    return caches.match(event.request)
+                        .then((response) => response || caches.match('/index.html'));
+                })
+        );
         return;
     }
 
-    // Only cache GET requests — skip POST/PUT/DELETE (e.g., file uploads)
-    if (event.request.method !== 'GET') {
-        return;
-    }
-
+    // Cache First strategy for static assets
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
-                // Cache hit - return response
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request)
-                    .then((response) => {
-                        // Check if we received a valid response
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-
-                        // Clone the response
-                        const responseToCache = response.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then((cache) => {
-                                cache.put(event.request, responseToCache);
-                            });
-
+                if (response) return response;
+                return fetch(event.request).then((response) => {
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
                         return response;
-                    })
-                    .catch(() => {
-                        // Fallback for navigation requests (e.g., /dashboard) to index.html for SPA
-                        if (event.request.mode === 'navigate') {
-                            return caches.match('/index.html');
-                        }
-                        // Return a proper Response for non-navigation requests to avoid null respondWith error
-                        return new Response('Network error', { status: 408, statusText: 'Request Timeout' });
+                    }
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
                     });
+                    return response;
+                });
             })
     );
 });

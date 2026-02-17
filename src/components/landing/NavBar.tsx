@@ -6,7 +6,7 @@ interface NavBarProps {
     scrollToSection: (id: string) => void;
 }
 
-const NAV_ITEMS = ['Features', 'Specialties', 'Biomarkers', 'Testimonials'] as const;
+const NAV_ITEMS = ['Features', 'Specialties', 'Biomarkers'] as const;
 
 export const NavBar: React.FC<NavBarProps> = ({ onSignIn, scrollToSection }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

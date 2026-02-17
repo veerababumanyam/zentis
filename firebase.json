@@ -23,7 +23,7 @@
   ],
   "hosting": [
     {
-      "site": "zentis",
+      "target": "zentis",
       "public": "dist",
       "ignore": [
         "firebase.json",
@@ -32,37 +32,28 @@
       ],
       "headers": [
         {
-          "source": "**",
+          "source": "service-worker.js",
           "headers": [
             {
-              "key": "Cross-Origin-Opener-Policy",
-              "value": "same-origin-allow-popups"
+              "key": "Cache-Control",
+              "value": "no-cache"
             }
           ]
-        }
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ]
-    },
-    {
-      "site": "zentis-f6d87",
-      "public": "dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "headers": [
+        },
         {
           "source": "**",
           "headers": [
             {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
               "key": "Cross-Origin-Opener-Policy",
               "value": "same-origin-allow-popups"
+            },
+            {
+              "key": "Cross-Origin-Embedder-Policy",
+              "value": "unsafe-none"
             }
           ]
         }

@@ -1,14 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAccount = void 0;
-const functions = require("firebase-functions");
+const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 admin.initializeApp();
-exports.deleteAccount = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+exports.deleteAccount = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "The function must be called while authenticated.");
     }
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const db = admin.firestore();
     const storage = admin.storage();
     // Use the default bucket
@@ -31,14 +31,13 @@ exports.deleteAccount = functions.https.onCall(async (data, context) => {
             console.log(`Deleted patient record (self) for ${uid}`);
         }
         // 2. Delete Storage Files
-        // All user files are stored under 'users/{uid}/...'
-        // or potentially 'patients/{pid}/...' but currently the client uploads to '.../uploads'.
-        // Let's assume a structure. 
-        // Based on `storageService.ts` (implied), we should look for where files are stored.
-        // Usually it's `uploads/{uid}` or `users/{uid}`.
-        // Let's try to delete both prefixes if unsure, or just 'users/{uid}' as per plan.
-        await bucket.deleteFiles({ prefix: `users/${uid}/` });
-        console.log(`Deleted storage files for ${uid}`);
+        try {
+            await bucket.deleteFiles({ prefix: `users/${uid}/` });
+            console.log(`Deleted storage files for ${uid}`);
+        }
+        catch (e) {
+            console.warn(`Error deleting storage files for ${uid} (might be empty):`, e);
+        }
         // 3. Delete Auth User
         await admin.auth().deleteUser(uid);
         console.log(`Deleted auth user ${uid}`);
@@ -46,7 +45,7 @@ exports.deleteAccount = functions.https.onCall(async (data, context) => {
     }
     catch (error) {
         console.error("Error deleting account:", error);
-        throw new functions.https.HttpsError("internal", "Failed to delete account. Please try again later.");
+        throw new https_1.HttpsError("internal", "Failed to delete account. Please try again later.");
     }
 });
 //# sourceMappingURL=index.js.map

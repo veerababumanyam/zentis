@@ -3,6 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { Patient, MultiSpecialistReviewMessage, ClinicalDebateMessage, DebateParticipant, DebateTurn, SpecialistReport, UniversalSpecialistMessage } from '../../types';
 import * as expandedAgents from './expandedSpecialties';
 import * as subSpecialtyAgents from './subspecialtyAgents';
+import { runPsychiatryAgent } from './psychiatristAgent';
+import { runPharmacistAgent } from './pharmacistAgent';
+import { runNutritionistAgent } from './nutritionistAgent';
 import { AI_MODELS } from '../../config/aiModels';
 
 // Helper to prepare patient context
@@ -36,7 +39,7 @@ export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenA
     const prompt = `Review the patient data and assemble a high-fidelity Medical Board.
     Identify **ALL** relevant medical specialties required for a comprehensive review.
     
-    **Available Specialized Agents:** ${ALL_SPECIALTIES.join(', ')}.
+    **Available Specialized Agents:** ${ALL_SPECIALTIES.join(', ')}, Pharmacist, Nutritionist.
     (You may also request others if strictly necessary, e.g., 'Surgery').
     
     **Rules:**
@@ -137,7 +140,7 @@ export const generateSpecialistOpinion = async (patient: Patient, specialty: str
         } else if (s.includes('infect') || s.includes('id') || s.includes('sepsis')) {
             specificAgentResponse = await expandedAgents.runInfectiousDiseaseAgent(patient, "Board Review", ai);
         } else if (s.includes('psych') || s.includes('mental')) {
-            specificAgentResponse = await expandedAgents.runPsychiatryAgent(patient, "Board Review", ai);
+            specificAgentResponse = await runPsychiatryAgent(patient, "Board Review", ai);
         } else if (s.includes('urol') || s.includes('prostate') || s.includes('bladder')) {
             specificAgentResponse = await expandedAgents.runUrologyAgent(patient, "Board Review", ai);
         } else if (s.includes('ophth') || s.includes('eye')) {
@@ -146,6 +149,10 @@ export const generateSpecialistOpinion = async (patient: Patient, specialty: str
             specificAgentResponse = await expandedAgents.runGeriatricsAgent(patient, "Board Review", ai);
         } else if (s.includes('neuro')) {
             specificAgentResponse = await subSpecialtyAgents.runNeurologyAgent(patient, "Board Review", ai);
+        } else if (s.includes('pharm') || s.includes('drug') || s.includes('medication')) {
+            specificAgentResponse = await runPharmacistAgent(patient, "Board Review", ai);
+        } else if (s.includes('nutrition') || s.includes('diet') || s.includes('food')) {
+            specificAgentResponse = await runNutritionistAgent(patient, "Board Review", ai);
         }
 
         // If a specific agent was found and returned a valid object (not a text error message)

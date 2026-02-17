@@ -731,7 +731,112 @@ export type Message =
     | ClinicalDebateMessage
     | NeurologyMessage
     | OncologyMessage
-    | UniversalSpecialistMessage;
+    | UniversalSpecialistMessage
+    | PsychiatryMessage
+    | PharmacistMessage
+    | NutritionistMessage;
+
+// --- PSYCHIATRY TYPES ---
+
+export interface MentalStatusExam {
+    appearance: string;
+    behavior: string;
+    speech: string;
+    mood: string;
+    affect: string;
+    thoughtProcess: string;
+    thoughtContent: string;
+    perception: string;
+    insight: string;
+    judgment: string;
+}
+
+export interface RiskAssessment {
+    suicideRisk: 'Low' | 'Moderate' | 'High' | 'Critical';
+    homicideRisk: 'Low' | 'Moderate' | 'High' | 'Critical';
+    selfHarmRisk: 'Low' | 'Moderate' | 'High';
+    rationale: string;
+}
+
+export interface PsychiatryFinding {
+    category: 'MSE' | 'Risk' | 'Psychosocial' | 'Medical Rule-out';
+    finding: string;
+    status: 'Normal' | 'Abnormal' | 'Critical';
+    details: string;
+}
+
+export interface PsychiatryMessage {
+    id: number;
+    sender: 'ai';
+    type: 'psychiatry_analysis';
+    title: string;
+    mse: MentalStatusExam;
+    riskAssessment: RiskAssessment;
+    findings: PsychiatryFinding[];
+    differentialDiagnosis: string[];
+    medicationAnalysis: string;
+    plan: string[];
+    suggestedAction?: SuggestedAction;
+}
+
+// --- PHARMACIST TYPES ---
+
+export interface DrugInteraction {
+    drug1: string;
+    drug2: string;
+    severity: 'Major' | 'Moderate' | 'Minor';
+    mechanism: string;
+    management: string;
+}
+
+export interface DosingAdjustment {
+    drug: string;
+    currentDose: string;
+    recommendedDose: string;
+    reason: 'Renal' | 'Hepatic' | 'Age' | 'Weight' | 'Interaction';
+    details: string;
+}
+
+export interface PharmacistMessage {
+    id: number;
+    sender: 'ai';
+    type: 'pharmacist_analysis';
+    title: string;
+    interactions: DrugInteraction[];
+    dosingAdjustments: DosingAdjustment[];
+    deprescribingOpportunities: { drug: string; reason: string; recommendation: string }[];
+    costOptimization: { drug: string; suggestion: string; potentialSavings: string }[];
+    summary: string;
+    suggestedAction?: SuggestedAction;
+}
+
+// --- NUTRITIONIST TYPES ---
+
+export interface DietaryRestriction {
+    type: 'Low Sodium' | 'Fluid Restriction' | 'Low Potassium' | 'Carbohydrate Controlled' | 'Low Phosphate' | 'Renal' | 'Heart Healthy';
+    status: 'Active' | 'Recommended' | 'Contraindicated';
+    details: string;
+}
+
+export interface NutritionalDeficiency {
+    nutrient: string;
+    level: string; // e.g., "3.2 mg/dL"
+    status: 'Deficient' | 'Insufficiency' | 'Risk';
+    recommendation: string;
+}
+
+export interface NutritionistMessage {
+    id: number;
+    sender: 'ai';
+    type: 'nutritionist_analysis';
+    title: string;
+    nutritionalStatus: 'Well-nourished' | 'At Risk' | 'Malnourished';
+    dietaryRestrictions: DietaryRestriction[];
+    deficiencies: NutritionalDeficiency[];
+    mealPlanSuggestion: string;
+    educationalContent: string;
+    suggestedAction?: SuggestedAction;
+}
 
 
 // --- FEEDBACK & PERSONALIZATION TYPES ---

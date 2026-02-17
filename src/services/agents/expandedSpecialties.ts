@@ -157,11 +157,7 @@ export const runInfectiousDiseaseAgent = async (patient: Patient, query: string,
     return runSpecialtyAgentBase(patient, query, 'Infectious Disease', keywords, role, ai);
 };
 
-export const runPsychiatryAgent = async (patient: Patient, query: string, ai: GoogleGenAI) => {
-    const keywords = ['depression', 'anxiety', 'mood', 'psych', 'suicide', 'mental', 'hallucination', 'delusion', 'cognitive', 'behavioral', 'sertraline', 'fluoxetine'];
-    const role = "You are an expert Psychiatrist AI. Focus on mental health, mood disorders, cognitive function, and psychopharmacology.";
-    return runSpecialtyAgentBase(patient, query, 'Psychiatry', keywords, role, ai);
-};
+
 
 export const runUrologyAgent = async (patient: Patient, query: string, ai: GoogleGenAI) => {
     const keywords = ['urine', 'prostate', 'bladder', 'psa', 'hematuria', 'incontinence', 'urology', 'kidney stone', 'utis', 'foley'];

@@ -7,14 +7,6 @@ Zentis is a conversational co-pilot that instantly transforms complex patient da
 
 ---
 
-## Tech Stack
-
--   **Frontend:** React 19, TypeScript, Tailwind CSS
--   **Backend & Infrastructure:** Firebase (Auth, Firestore, Hosting)
--   **AI & Generative UI:** Google Gemini API (`@google/genai`)
-    -   *Models:* `gemini-2.5-flash` (Speed), `gemini-3-pro-preview` (Deep Reasoning/Vision), `gemini-2.5-flash-native-audio-preview` (Live)
--   **State Management:** React Hooks (Context API)
--   **Build:** Vite (npm run build)
 
 ## Project Structure
 

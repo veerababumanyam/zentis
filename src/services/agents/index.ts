@@ -32,11 +32,15 @@ import {
     runHematologyAgent as runHematologyAgent_internal,
     runRheumatologyAgent as runRheumatologyAgent_internal,
     runInfectiousDiseaseAgent as runInfectiousDiseaseAgent_internal,
-    runPsychiatryAgent as runPsychiatryAgent_internal,
+
     runUrologyAgent as runUrologyAgent_internal,
     runOphthalmologyAgent as runOphthalmologyAgent_internal,
     runGeriatricsAgent as runGeriatricsAgent_internal
 } from './expandedSpecialties';
+
+import { runPsychiatryAgent as runPsychiatryAgent_internal } from './psychiatristAgent';
+import { runPharmacistAgent as runPharmacistAgent_internal } from './pharmacistAgent';
+import { runNutritionistAgent as runNutritionistAgent_internal } from './nutritionistAgent';
 
 import {
     runSmartSummaryAgent as runSmartSummaryAgent_internal,
@@ -112,6 +116,10 @@ export const runPsychiatryAgent = runPsychiatryAgent_internal;
 export const runUrologyAgent = runUrologyAgent_internal;
 export const runOphthalmologyAgent = runOphthalmologyAgent_internal;
 export const runGeriatricsAgent = runGeriatricsAgent_internal;
+
+export const runPharmacistAgent = runPharmacistAgent_internal;
+export const runNutritionistAgent = runNutritionistAgent_internal;
+
 
 export const runSmartSummaryAgent = runSmartSummaryAgent_internal;
 export const runMedicationReviewAgent = runMedicationReviewAgent_internal;

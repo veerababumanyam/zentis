@@ -2,6 +2,14 @@
   "projects": {
     "default": "zentis-f6d87"
   },
-  "targets": {},
+  "targets": {
+    "zentis-f6d87": {
+      "hosting": {
+        "zentis": [
+          "zentis-f6d87"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

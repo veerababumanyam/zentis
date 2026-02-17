@@ -499,18 +499,32 @@ export const HealthRecordSidebar: React.FC<{ onBack?: () => void }> = ({ onBack 
                                             </p>
                                         </div>
 
-                                        {/* Quick Action - Single Analyze */}
+                                        {/* Quick Action - Single Analyze & Delete */}
                                         {!isSelectMode && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    actions.handleAnalyzeSingleReport(report.id);
-                                                }}
-                                                className="ml-2 p-1.5 rounded-full text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
-                                                title="Quick Analyze"
-                                            >
-                                                <SparklesIcon className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center ml-2 opacity-0 group-hover:opacity-100 transition-all focus-within:opacity-100">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        actions.handleAnalyzeSingleReport(report.id);
+                                                    }}
+                                                    className="p-1.5 rounded-full text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all"
+                                                    title="Quick Analyze"
+                                                >
+                                                    <SparklesIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedReportIds(new Set([report.id]));
+                                                        setDeleteMode('soft');
+                                                        setIsDeleteModalOpen(true);
+                                                    }}
+                                                    className="p-1.5 rounded-full text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                                                    title="Move to Trash"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 );

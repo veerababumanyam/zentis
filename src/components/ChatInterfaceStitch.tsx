@@ -63,7 +63,7 @@ export const ChatInterfaceStitch: React.FC = () => {
             <div className="flex-1 px-4 md:px-8 py-4 overflow-y-auto custom-scrollbar space-y-6">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[90%] md:max-w-[80%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[90%] md:max-w-[80%] min-w-0 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                             {/* 
                     We reuse MessageBubble but wrapper controls alignment. 
                     We might want to pass a 'stitch' variant prop later, 

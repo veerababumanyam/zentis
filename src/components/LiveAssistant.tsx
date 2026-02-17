@@ -108,11 +108,13 @@ export const LiveAssistant: React.FC = () => {
   const inputAudioContextRef = useRef<AudioContext | null>(null);
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
+  const isSocketOpen = useRef(false);
 
   // Track output node to control muting (Scribe Mode)
   const outputGainNodeRef = useRef<GainNode | null>(null);
 
   const cleanup = useCallback(() => {
+    isSocketOpen.current = false;
     if (frameIntervalRef.current) window.clearInterval(frameIntervalRef.current);
     if (sessionRef.current) {
       try {
@@ -285,15 +287,19 @@ export const LiveAssistant: React.FC = () => {
         model: 'gemini-3-flash-preview',
         callbacks: {
           onopen: () => {
+            isSocketOpen.current = true;
             setIsSessionActive(true);
             const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
             const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
 
             scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+              if (!isSocketOpen.current) return;
               const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
               const pcmBlob = createBlob(inputData);
               sessionPromise.then((session) => {
-                session.sendRealtimeInput({ media: pcmBlob });
+                if (isSocketOpen.current) {
+                  session.sendRealtimeInput({ media: pcmBlob });
+                }
               });
             };
 
@@ -311,12 +317,15 @@ export const LiveAssistant: React.FC = () => {
                 if (ctx) {
                   ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
                   canvas.toBlob(async (blob) => {
-                    if (blob) {
+                    if (blob && isSocketOpen.current) {
                       const reader = new FileReader();
                       reader.onloadend = () => {
+                        if (!isSocketOpen.current) return;
                         const base64Data = (reader.result as string).split(',')[1];
                         sessionPromise.then((session) => {
-                          session.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } });
+                          if (isSocketOpen.current) {
+                            session.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } });
+                          }
                         });
                       };
                       reader.readAsDataURL(blob);
@@ -366,8 +375,12 @@ export const LiveAssistant: React.FC = () => {
                 });
               }
 
-              if (functionResponses.length > 0) {
-                sessionPromise.then(session => session.sendToolResponse({ functionResponses }));
+              if (functionResponses.length > 0 && isSocketOpen.current) {
+                sessionPromise.then(session => {
+                  if (isSocketOpen.current) {
+                    session.sendToolResponse({ functionResponses });
+                  }
+                });
               }
             }
 
@@ -413,10 +426,12 @@ export const LiveAssistant: React.FC = () => {
           },
           onerror: (e) => {
             console.error('Live session error:', e);
+            isSocketOpen.current = false;
             setIsSessionActive(false);
           },
           onclose: () => {
             console.log('Live session closed');
+            isSocketOpen.current = false;
             setIsSessionActive(false);
           },
         },
@@ -442,6 +457,7 @@ export const LiveAssistant: React.FC = () => {
     if (isLiveModeOpen) {
       // Close existing session cleanly
       if (sessionRef.current) {
+        isSocketOpen.current = false;
         sessionRef.current.close();
         sessionRef.current = null; // Ensure nullified immediately
         sourcesRef.current.forEach(s => s.stop());
@@ -496,8 +512,8 @@ export const LiveAssistant: React.FC = () => {
   if (!isLiveModeOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md">
-      <div className="bg-white dark:bg-gray-900 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col relative aspect-[16/10]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4">
+      <div className="bg-white dark:bg-gray-900 w-full h-full md:h-auto md:max-w-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col relative md:aspect-[16/10]">
         <header className="absolute top-0 inset-x-0 p-4 flex justify-between items-center z-20 bg-gradient-to-b from-black/60 to-transparent text-white">
           <div className="flex items-center space-x-2">
             <RadioIcon className={`w-5 h-5 ${isSessionActive ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />

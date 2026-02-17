@@ -242,7 +242,7 @@ const AiMessageContent: React.FC<{ message: Message; patient?: Patient | null; o
         case 'text':
             if (message.sender === 'ai') {
                 return (
-                    <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-200 dark:prose-invert">
+                    <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-200 dark:prose-invert break-words">
                         {formatText(message.text)}
                         {message.suggestedAction && onViewReport && (
                             <SuggestedActionButton action={message.suggestedAction} onViewReport={onViewReport} />
@@ -259,7 +259,7 @@ const AiMessageContent: React.FC<{ message: Message; patient?: Patient | null; o
 const UserMessageContent: React.FC<{ message: Message; onViewFiles: (files: UploadableFile[], startIndex: number) => void }> = React.memo(({ message, onViewFiles }) => {
     switch (message.type) {
         case 'text':
-            return <p className="font-medium text-stitch-bg-dark">{message.text}</p>;
+            return <p className="font-medium text-stitch-bg-dark break-words">{message.text}</p>;
         case 'image':
             // Resolve image source: storageUrl > base64 > thumbnail
             const imgSrc = message.storageUrl
@@ -397,7 +397,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                 </div>
             )}
             <div
-                className={`relative p-5 rounded-2xl shadow-lg border backdrop-blur-md transition-all duration-300
+                className={`relative p-5 rounded-2xl shadow-lg border backdrop-blur-md transition-all duration-300 break-words min-w-0
         ${isAI
                         ? 'glass-card text-gray-800 dark:text-gray-200 rounded-bl-none max-w-4xl hover:shadow-xl'
                         : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-none max-w-xl border-transparent shadow-blue-500/20'

@@ -6,6 +6,8 @@ import { UsersIcon } from './icons/UsersIcon';
 import { ChatBubbleLeftRightIcon } from './icons/ChatBubbleLeftRightIcon';
 import { SummarizeIcon } from './icons/SummarizeIcon';
 import { ClipboardCheckIcon } from './icons/ClipboardCheckIcon';
+import { AlertTriangleIcon } from './icons/AlertTriangleIcon';
+import { CalculatorIcon } from './icons/CalculatorIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 
 interface ChatHeaderStitchProps {
@@ -83,6 +85,26 @@ export const ChatHeaderStitch: React.FC<ChatHeaderStitchProps> = ({ onOpenSettin
                     </button>
 
                     <button
+                        onClick={() => handleSendMessage('Identify my top 3 clinical risks based on these reports')}
+                        className="flex flex-col items-center justify-center p-2 rounded-xl text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all hover:scale-105 gap-0.5"
+                        title="Risk Analysis"
+                        disabled={isChatLoading}
+                    >
+                        <AlertTriangleIcon className="w-5 h-5" />
+                        <span className="text-[9px] font-bold uppercase tracking-wide">Risks</span>
+                    </button>
+
+                    <button
+                        onClick={() => handleSendMessage('Calculate cardiovascular risk scores: CHA2DS2-VASc, HAS-BLED, and ASCVD')}
+                        className="flex flex-col items-center justify-center p-2 rounded-xl text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all hover:scale-105 gap-0.5"
+                        title="Calculate Risk Scores"
+                        disabled={isChatLoading}
+                    >
+                        <CalculatorIcon className="w-5 h-5" />
+                        <span className="text-[9px] font-bold uppercase tracking-wide">Scores</span>
+                    </button>
+
+                    <button
                         onClick={() => handleSendMessage('Generate a summary of my current conditions, vitals, and critical alerts')}
                         className="flex flex-col items-center justify-center p-2 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105 gap-0.5"
                         title="Summarize My Health"
@@ -156,6 +178,24 @@ export const ChatHeaderStitch: React.FC<ChatHeaderStitchProps> = ({ onOpenSettin
                         title="Clinical Critics"
                     >
                         <ChatBubbleLeftRightIcon className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        onClick={() => handleSendMessage('Identify my top 3 clinical risks based on these reports')}
+                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 transition-shadow active:shadow-inner"
+                        disabled={isChatLoading}
+                        title="Risk Analysis"
+                    >
+                        <AlertTriangleIcon className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        onClick={() => handleSendMessage('Calculate cardiovascular risk scores: CHA2DS2-VASc, HAS-BLED, and ASCVD')}
+                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 transition-shadow active:shadow-inner"
+                        disabled={isChatLoading}
+                        title="Calculate Risk Scores"
+                    >
+                        <CalculatorIcon className="w-5 h-5" />
                     </button>
 
                     <button

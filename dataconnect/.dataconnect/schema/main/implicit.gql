@@ -10,6 +10,18 @@ extend type Diagnosis {
   """
   patientId: UUID! @fdc_generated(from: "Diagnosis.patient", purpose: IMPLICIT_REF_FIELD)
 }
+extend type FamilyHistory {
+  """
+  ✨ Implicit foreign key field based on `FamilyHistory`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "FamilyHistory.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Immunization {
+  """
+  ✨ Implicit foreign key field based on `Immunization`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "Immunization.patient", purpose: IMPLICIT_REF_FIELD)
+}
 extend type LabResult {
   """
   ✨ Implicit foreign key field based on `LabResult`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
@@ -37,6 +49,12 @@ extend type Report {
   ✨ Implicit foreign key field based on `Report`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
   """
   patientId: UUID! @fdc_generated(from: "Report.patient", purpose: IMPLICIT_REF_FIELD)
+}
+extend type SocialHistory {
+  """
+  ✨ Implicit foreign key field based on `SocialHistory`.`patient`. It must match the value of `Patient`.`id`. See `@ref` for how to customize it.
+  """
+  patientId: UUID! @fdc_generated(from: "SocialHistory.patient", purpose: IMPLICIT_REF_FIELD)
 }
 extend type User {
   """

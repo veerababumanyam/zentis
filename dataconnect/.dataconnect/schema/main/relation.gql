@@ -169,6 +169,310 @@ extend type Diagnosis {
   """
   _id: ID! @fdc_generated(from: "Diagnosis.id", purpose: GLOBAL_ID)
 }
+extend type FamilyHistory {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "FamilyHistory", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table.
+  """
+  _count: Int! @fdc_generated(from: "FamilyHistory.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `ageAtOnset` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  ageAtOnset_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.ageAtOnset", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `condition` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  condition_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.condition", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `icd10` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  icd10_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.icd10", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `notes` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  notes_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.notes", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `patientId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  patientId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.patientId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `relativeType` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  relativeType_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.relativeType", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `FamilyHistory` table where the `sourceReportId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  sourceReportId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "FamilyHistory.sourceReportId", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `ageAtOnset` field in the `FamilyHistory` table.
+  """
+  ageAtOnset_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Int @fdc_generated(from: "FamilyHistory.ageAtOnset", purpose: QUERY_SUM)
+  """
+  ✨ Sum the `createdAt` field in the `FamilyHistory` table.
+  """
+  createdAt_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "FamilyHistory.createdAt", purpose: QUERY_SUM)
+  """
+  ✨ Average the `ageAtOnset` field in the `FamilyHistory` table.
+  """
+  ageAtOnset_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "FamilyHistory.ageAtOnset", purpose: QUERY_AVG)
+  """
+  ✨ Average the `createdAt` field in the `FamilyHistory` table.
+  """
+  createdAt_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "FamilyHistory.createdAt", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `ageAtOnset` field in the `FamilyHistory` table.
+  """
+  ageAtOnset_min: Int @fdc_generated(from: "FamilyHistory.ageAtOnset", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `createdAt` field in the `FamilyHistory` table.
+  """
+  createdAt_min: Float @fdc_generated(from: "FamilyHistory.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `ageAtOnset` field in the `FamilyHistory` table.
+  """
+  ageAtOnset_max: Int @fdc_generated(from: "FamilyHistory.ageAtOnset", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `createdAt` field in the `FamilyHistory` table.
+  """
+  createdAt_max: Float @fdc_generated(from: "FamilyHistory.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "FamilyHistory.id", purpose: GLOBAL_ID)
+}
+extend type Immunization {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Immunization", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Immunization` table.
+  """
+  _count: Int! @fdc_generated(from: "Immunization.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `administeringProvider` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  administeringProvider_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.administeringProvider", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `date` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  date_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.date", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `lotNumber` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  lotNumber_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.lotNumber", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `manufacturer` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  manufacturer_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.manufacturer", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `notes` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  notes_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.notes", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `patientId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  patientId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.patientId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `route` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  route_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.route", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `site` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  site_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.site", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `sourceReportId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  sourceReportId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.sourceReportId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `status` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  status_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.status", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Immunization` table where the `vaccineName` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  vaccineName_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Immunization.vaccineName", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `createdAt` field in the `Immunization` table.
+  """
+  createdAt_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "Immunization.createdAt", purpose: QUERY_SUM)
+  """
+  ✨ Average the `createdAt` field in the `Immunization` table.
+  """
+  createdAt_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "Immunization.createdAt", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `createdAt` field in the `Immunization` table.
+  """
+  createdAt_min: Float @fdc_generated(from: "Immunization.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `Immunization` table.
+  """
+  createdAt_max: Float @fdc_generated(from: "Immunization.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Immunization.id", purpose: GLOBAL_ID)
+}
 extend type LabResult {
   """
   Implicit metadata field that cannot be written. It provides extra information about query results.
@@ -527,6 +831,74 @@ extend type Patient {
     having: Diagnosis_Having
   ): [Diagnosis!]! @fdc_generated(from: "Diagnosis.patient", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
   """
+  ✨ List `FamilyHistory` objects in a one-to-many relationship (where `FamilyHistory`.`patient` is this object).
+  """
+  familyHistories_on_patient(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: FamilyHistory_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [FamilyHistory_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: FamilyHistory_Having
+  ): [FamilyHistory!]! @fdc_generated(from: "FamilyHistory.patient", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Immunization` objects in a one-to-many relationship (where `Immunization`.`patient` is this object).
+  """
+  immunizations_on_patient(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Immunization_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Immunization_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Immunization_Having
+  ): [Immunization!]! @fdc_generated(from: "Immunization.patient", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
   ✨ List `LabResult` objects in a one-to-many relationship (where `LabResult`.`patient` is this object).
   """
   labResults_on_patient(
@@ -628,6 +1000,40 @@ extend type Patient {
     """
     having: Report_Having
   ): [Report!]! @fdc_generated(from: "Report.patient", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `SocialHistory` objects in a one-to-many relationship (where `SocialHistory`.`patient` is this object).
+  """
+  socialHistories_on_patient(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: SocialHistory_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [SocialHistory_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: SocialHistory_Having
+  ): [SocialHistory!]! @fdc_generated(from: "SocialHistory.patient", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
   """
   ✨ List `VitalSign` objects in a one-to-many relationship (where `VitalSign`.`patient` is this object).
   """
@@ -866,6 +1272,127 @@ extend type Report {
   A generated field that is used for caching results in SDKs.
   """
   _id: ID! @fdc_generated(from: "Report.id", purpose: GLOBAL_ID)
+}
+extend type SocialHistory {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "SocialHistory", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table.
+  """
+  _count: Int! @fdc_generated(from: "SocialHistory.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `domain` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  domain_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.domain", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `endDate` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  endDate_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.endDate", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `notes` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  notes_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.notes", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `patientId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  patientId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.patientId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `sourceReportId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  sourceReportId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.sourceReportId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `startDate` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  startDate_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.startDate", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `SocialHistory` table where the `value` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  value_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "SocialHistory.value", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `createdAt` field in the `SocialHistory` table.
+  """
+  createdAt_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "SocialHistory.createdAt", purpose: QUERY_SUM)
+  """
+  ✨ Average the `createdAt` field in the `SocialHistory` table.
+  """
+  createdAt_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "SocialHistory.createdAt", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `createdAt` field in the `SocialHistory` table.
+  """
+  createdAt_min: Float @fdc_generated(from: "SocialHistory.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `SocialHistory` table.
+  """
+  createdAt_max: Float @fdc_generated(from: "SocialHistory.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "SocialHistory.id", purpose: GLOBAL_ID)
 }
 extend type User {
   """

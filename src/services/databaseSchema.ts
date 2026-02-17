@@ -38,6 +38,64 @@ export interface PatientDocument {
     criticalAlerts?: string[];
     consolidatedFindings?: string[]; // Aggregated findings from all reports
 
+    // Administrative details
+    emergencyContacts?: {
+        name: string;
+        relationship?: string;
+        phonePrimary: string;
+        phoneSecondary?: string;
+        address?: string;
+        isPrimary?: boolean;
+    }[];
+    insurance?: {
+        providerName: string;
+        planName?: string;
+        policyNumber?: string;
+        groupNumber?: string;
+        phone?: string;
+        effectiveDate?: string; // YYYY-MM-DD
+        expiryDate?: string; // YYYY-MM-DD
+        notes?: string;
+    };
+    primaryCarePhysician?: {
+        name: string;
+        clinicName?: string;
+        phone?: string;
+        email?: string;
+        address?: string;
+        npi?: string;
+    };
+
+    // Legal & directives
+    advancedDirectives?: {
+        dnr?: boolean;
+        dni?: boolean;
+        polstSummary?: string;
+        directiveDocumentUrl?: string;
+        lastReviewDate?: string; // YYYY-MM-DD
+        notes?: string;
+    };
+    privacyConsent?: {
+        consentGiven: boolean;
+        consentType: 'HIPAA' | 'Marketing' | 'Research' | 'Other';
+        consentDate: string; // YYYY-MM-DD
+        withdrawnDate?: string; // YYYY-MM-DD
+        notes?: string;
+    };
+
+    // Clinical goals
+    clinicalGoals?: {
+        targetWeightKg?: number;
+        targetSystolicBp?: number;
+        targetDiastolicBp?: number;
+        targetHba1c?: number;
+        targetLdl?: number;
+        otherGoals?: {
+            label: string;
+            targetDescription: string;
+        }[];
+    };
+
     createdAt: number;
     updatedAt: number;
 }
@@ -59,6 +117,49 @@ export interface MedicationDocument {
 
     // Metadata
     sourceReportId?: string; // Link to the report where this was found
+    createdAt: number;
+}
+
+// patients/{patientId}/immunizations/{immunizationId}
+export interface ImmunizationDocument {
+    id?: string;
+    vaccineName: string;
+    date: string; // YYYY-MM-DD
+    lotNumber?: string;
+    manufacturer?: string;
+    administeringProvider?: string;
+    site?: string; // e.g., "Left Deltoid"
+    route?: string; // e.g., "IM"
+    status?: 'completed' | 'pending' | 'declined';
+    notes?: string;
+
+    sourceReportId?: string;
+    createdAt: number;
+}
+
+// patients/{patientId}/familyHistory/{entryId}
+export interface FamilyHistoryDocument {
+    id?: string;
+    relativeType: string; // e.g., "Mother", "Father", "Sibling"
+    condition: string;
+    icd10?: string;
+    ageAtOnset?: number;
+    notes?: string;
+
+    sourceReportId?: string;
+    createdAt: number;
+}
+
+// patients/{patientId}/socialHistory/{entryId}
+export interface SocialHistoryDocument {
+    id?: string;
+    domain: string; // e.g., "Smoking", "Alcohol", "Occupation"
+    value: string; // e.g., "Current every-day smoker"
+    startDate?: string; // YYYY-MM-DD
+    endDate?: string; // YYYY-MM-DD
+    notes?: string;
+
+    sourceReportId?: string;
     createdAt: number;
 }
 

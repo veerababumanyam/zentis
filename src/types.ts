@@ -40,6 +40,64 @@ export interface MedicalHistoryItem {
     icd10?: string;
 }
 
+export interface EmergencyContact {
+    name: string;
+    relationship?: string;
+    phonePrimary: string;
+    phoneSecondary?: string;
+    address?: string;
+    isPrimary?: boolean;
+}
+
+export interface InsuranceInfo {
+    providerName: string;
+    planName?: string;
+    policyNumber?: string;
+    groupNumber?: string;
+    phone?: string;
+    effectiveDate?: string; // YYYY-MM-DD
+    expiryDate?: string; // YYYY-MM-DD
+    notes?: string;
+}
+
+export interface PrimaryCarePhysician {
+    name: string;
+    clinicName?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    npi?: string;
+}
+
+export interface AdvancedDirectives {
+    dnr?: boolean; // Do Not Resuscitate
+    dni?: boolean; // Do Not Intubate
+    polstSummary?: string;
+    directiveDocumentUrl?: string;
+    lastReviewDate?: string; // YYYY-MM-DD
+    notes?: string;
+}
+
+export interface PrivacyConsent {
+    consentGiven: boolean;
+    consentType: 'HIPAA' | 'Marketing' | 'Research' | 'Other';
+    consentDate: string; // YYYY-MM-DD
+    withdrawnDate?: string; // YYYY-MM-DD
+    notes?: string;
+}
+
+export interface ClinicalGoals {
+    targetWeightKg?: number;
+    targetSystolicBp?: number;
+    targetDiastolicBp?: number;
+    targetHba1c?: number;
+    targetLdl?: number;
+    otherGoals?: {
+        label: string;
+        targetDescription: string;
+    }[];
+}
+
 export interface ClinicalTask {
     id: string;
     text: string;
@@ -58,6 +116,41 @@ export interface Patient {
     medicalHistory: MedicalHistoryItem[];
     criticalAlerts?: string[];
     consolidatedFindings?: string[]; // NEW: Aggregated findings from all reports
+    emergencyContacts?: EmergencyContact[];
+    insurance?: InsuranceInfo;
+    primaryCarePhysician?: PrimaryCarePhysician;
+    advancedDirectives?: AdvancedDirectives;
+    privacyConsent?: PrivacyConsent;
+    clinicalGoals?: ClinicalGoals;
+    // Expanded structured history (optional, populated when fetched from sub-collections)
+    immunizations?: {
+        id?: string;
+        vaccineName: string;
+        date: string;
+        lotNumber?: string;
+        manufacturer?: string;
+        administeringProvider?: string;
+        site?: string;
+        route?: string;
+        status?: 'completed' | 'pending' | 'declined';
+        notes?: string;
+    }[];
+    familyHistory?: {
+        id?: string;
+        relativeType: string;
+        condition: string;
+        icd10?: string;
+        ageAtOnset?: number;
+        notes?: string;
+    }[];
+    socialHistory?: {
+        id?: string;
+        domain: string;
+        value: string;
+        startDate?: string;
+        endDate?: string;
+        notes?: string;
+    }[];
     appointmentTime: string; // Format 'HH:MM'
     pendingLabs?: string[]; // NEW: For "Result Pending" visual cue
     currentStatus: {

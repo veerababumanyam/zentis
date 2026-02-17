@@ -108,3 +108,46 @@ type Diagnosis @table {
   notes: String
   createdAt: Float!
 }
+
+# Immunization records for a patient
+type Immunization @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  vaccineName: String!
+  date: String!
+  lotNumber: String
+  manufacturer: String
+  administeringProvider: String
+  site: String
+  route: String
+  status: String # 'completed' | 'pending' | 'declined'
+  notes: String
+  sourceReportId: String
+  createdAt: Float!
+}
+
+# Family history entries for a patient
+type FamilyHistory @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  relativeType: String! # 'Mother' | 'Father' | 'Sibling' etc.
+  condition: String!
+  icd10: String
+  ageAtOnset: Int
+  notes: String
+  sourceReportId: String
+  createdAt: Float!
+}
+
+# Social history entries for a patient
+type SocialHistory @table {
+  id: UUID! @default(expr: "uuidV4()")
+  patient: Patient!
+  domain: String! # 'Smoking' | 'Alcohol' | 'Occupation' etc.
+  value: String!
+  startDate: String
+  endDate: String
+  notes: String
+  sourceReportId: String
+  createdAt: Float!
+}

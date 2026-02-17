@@ -37,7 +37,10 @@ import type {
   LabResultDocument,
   VitalSignDocument,
   DiagnosisDocument,
-  PatientDocument
+  PatientDocument,
+  ImmunizationDocument,
+  FamilyHistoryDocument,
+  SocialHistoryDocument
 } from './databaseSchema';
 
 const USERS_COLLECTION = 'users';
@@ -70,7 +73,7 @@ export const getPatient = async (patientId: string): Promise<Patient | null> => 
     const patientRef = doc(db, PATIENTS_COLLECTION, patientId);
     const userRef = doc(db, USERS_COLLECTION, patientId);
 
-    // 1. Parallel Fetch: Parent Patient, Fallback User, and ALL 5 sub-collections
+    // 1. Parallel Fetch: Parent Patient, Fallback User, and ALL sub-collections
     // This removes the waterfall where we waited for patient existence before fetching details
     const [
       patientSnap,
@@ -79,7 +82,10 @@ export const getPatient = async (patientId: string): Promise<Patient | null> => 
       labsSnap, // Note: labs currently fetched but not fully mapped in original code, keeping for consistency
       vitalsSnap,
       diagnosesSnap,
-      reportsSnap
+      reportsSnap,
+      immunizationsSnap,
+      familyHistorySnap,
+      socialHistorySnap
     ] = await Promise.all([
       getDoc(patientRef),
       getDoc(userRef),
@@ -87,7 +93,10 @@ export const getPatient = async (patientId: string): Promise<Patient | null> => 
       getDocs(query(collection(patientRef, 'labs'), orderBy('date', 'desc'), limit(50))),
       getDocs(query(collection(patientRef, 'vitals'), orderBy('date', 'desc'), limit(20))),
       getDocs(collection(patientRef, 'diagnoses')),
-      getDocs(query(collection(patientRef, 'reports'), orderBy('date', 'desc'), limit(20)))
+      getDocs(query(collection(patientRef, 'reports'), orderBy('date', 'desc'), limit(20))),
+      getDocs(collection(patientRef, 'immunizations')),
+      getDocs(collection(patientRef, 'familyHistory')),
+      getDocs(collection(patientRef, 'socialHistory'))
     ]);
 
     // 2. Determine Base Patient Data (Demographics)
@@ -154,6 +163,21 @@ export const getPatient = async (patientId: string): Promise<Patient | null> => 
       })
       .filter(r => !r.isDeleted); // Filter out soft-deleted reports
 
+    const immunizations: ImmunizationDocument[] = immunizationsSnap.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as ImmunizationDocument)
+    }));
+
+    const familyHistory: FamilyHistoryDocument[] = familyHistorySnap.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as FamilyHistoryDocument)
+    }));
+
+    const socialHistory: SocialHistoryDocument[] = socialHistorySnap.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as SocialHistoryDocument)
+    }));
+
     // 4. Construct Final Domain Object
     return {
       id: pData.id,
@@ -166,12 +190,24 @@ export const getPatient = async (patientId: string): Promise<Patient | null> => 
       medicalHistory: medicalHistory,
       appointmentTime: '09:00', // Default
       criticalAlerts: pData.criticalAlerts,
+      // Administrative details
+      emergencyContacts: pData.emergencyContacts || [],
+      insurance: pData.insurance || undefined,
+      primaryCarePhysician: pData.primaryCarePhysician || undefined,
+      // Legal & directives
+      advancedDirectives: pData.advancedDirectives || undefined,
+      privacyConsent: pData.privacyConsent || undefined,
+      // Clinical goals
+      clinicalGoals: pData.clinicalGoals || undefined,
       currentStatus: {
         condition: pData.currentCondition || 'Wellness Check',
         vitals: vitalsString,
         medications: medications
       },
       reports: reports,
+      immunizations,
+      familyHistory,
+      socialHistory,
       notes: '',
       vitalsLog: recentVitals.map(v => ({ date: v.date, vitals: `${v.type} ${v.value} ${v.unit}` }))
     };
@@ -190,6 +226,48 @@ export const savePatientDemographics = async (patientId: string, data: Partial<P
     ...data,
     updatedAt: Date.now()
   }), { merge: true });
+};
+
+export const savePatientProfile = async (
+  patientId: string,
+  data: Partial<PatientDocument>
+): Promise<void> => {
+  try {
+    await savePatientDemographics(patientId, data);
+  } catch (error) {
+    console.error(`Error saving patient profile for ${patientId}:`, error);
+    throw error;
+  }
+};
+
+export const addImmunization = async (
+  patientId: string,
+  immunization: Omit<ImmunizationDocument, 'createdAt'>
+) => {
+  await addDoc(collection(db, PATIENTS_COLLECTION, patientId, 'immunizations'), {
+    ...immunization,
+    createdAt: Date.now()
+  });
+};
+
+export const addFamilyHistoryEntry = async (
+  patientId: string,
+  entry: Omit<FamilyHistoryDocument, 'createdAt'>
+) => {
+  await addDoc(collection(db, PATIENTS_COLLECTION, patientId, 'familyHistory'), {
+    ...entry,
+    createdAt: Date.now()
+  });
+};
+
+export const addSocialHistoryEntry = async (
+  patientId: string,
+  entry: Omit<SocialHistoryDocument, 'createdAt'>
+) => {
+  await addDoc(collection(db, PATIENTS_COLLECTION, patientId, 'socialHistory'), {
+    ...entry,
+    createdAt: Date.now()
+  });
 };
 
 /**

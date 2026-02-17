@@ -38,6 +38,44 @@ extend type Query {
     first: Diagnosis_FirstRow
   ): Diagnosis @fdc_generated(from: "Diagnosis", purpose: QUERY_SINGLE)
   """
+  ✨ Look up a single `FamilyHistory` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  familyHistory(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: FamilyHistory_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: FamilyHistory_FirstRow
+  ): FamilyHistory @fdc_generated(from: "FamilyHistory", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Immunization` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  immunization(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Immunization_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Immunization_FirstRow
+  ): Immunization @fdc_generated(from: "Immunization", purpose: QUERY_SINGLE)
+  """
   ✨ Look up a single `LabResult` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
   """
   labResult(
@@ -113,6 +151,25 @@ extend type Query {
     """
     first: Report_FirstRow
   ): Report @fdc_generated(from: "Report", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `SocialHistory` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  socialHistory(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: SocialHistory_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: SocialHistory_FirstRow
+  ): SocialHistory @fdc_generated(from: "SocialHistory", purpose: QUERY_SINGLE)
   """
   ✨ Look up a single `User` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
   """
@@ -219,6 +276,74 @@ extend type Query {
     """
     having: Diagnosis_Having
   ): [Diagnosis!]! @fdc_generated(from: "Diagnosis", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `FamilyHistory` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  familyHistories(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: FamilyHistory_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [FamilyHistory_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: FamilyHistory_Having
+  ): [FamilyHistory!]! @fdc_generated(from: "FamilyHistory", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Immunization` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  immunizations(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Immunization_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Immunization_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Immunization_Having
+  ): [Immunization!]! @fdc_generated(from: "Immunization", purpose: QUERY_MULTIPLE)
   """
   ✨ List `LabResult` objects in the table and return selected fields, optionally filtered by `where` conditions
   """
@@ -355,6 +480,40 @@ extend type Query {
     """
     having: Report_Having
   ): [Report!]! @fdc_generated(from: "Report", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `SocialHistory` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  socialHistories(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: SocialHistory_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [SocialHistory_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: SocialHistory_Having
+  ): [SocialHistory!]! @fdc_generated(from: "SocialHistory", purpose: QUERY_MULTIPLE)
   """
   ✨ List `User` objects in the table and return selected fields, optionally filtered by `where` conditions
   """

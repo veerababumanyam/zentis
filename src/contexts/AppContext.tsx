@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import type { AppState, Action } from './reducer';
 import type { ActiveOperation, OperationKind } from './reducer';
-import type { Patient, Message, TextMessage, Report, UploadableFile, Feedback, AiModel, ToastNotification, ClinicalDebateMessage, MultiSpecialistReviewMessage, ClinicalTask } from '../types';
+import type { Patient, Message, TextMessage, Report, UploadableFile, Feedback, AiModel, ToastNotification, ClinicalDebateMessage, MultiSpecialistReviewMessage, ClinicalTask, SpecialistReport } from '../types';
 import { appReducer, initialState } from './reducer';
 import { fetchPatients, updatePatient, addReportMetadata, saveExtractedData, createPatient, fetchExtractedData, getPatient, softDeleteReport, restoreReport, permanentlyDeleteReport } from '../services/ehrService';
 import * as apiManager from '../services/apiManager';
@@ -14,6 +14,7 @@ import { getFileTypeFromFile, getLinkMetadata } from '../utils';
 import { getBriefing, setBriefing } from '../services/cacheService';
 import { clearCacheStorage } from '../utils/storageCleaner';
 import { MissingApiKeyError } from '../errors';
+import * as boardCacheService from '../services/boardCacheService';
 
 import { useAuth } from './AuthContext'; // NEW
 
@@ -85,6 +86,7 @@ interface AppContextType {
         toggleLiveMode: () => void;
         toggleSettings: () => void; // NEW
         cancelActiveOperation: () => void;
+        updateQuota: (quota: import('../types').QuotaSummary) => void;
     }
 }
 
@@ -377,6 +379,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const toggleLiveMode = useCallback(() => dispatch({ type: 'TOGGLE_LIVE_MODE' }), []);
     const toggleSettings = useCallback(() => dispatch({ type: 'TOGGLE_SETTINGS' }), []); // NEW
     const toggleNoteModal = useCallback(() => dispatch({ type: 'TOGGLE_NOTE_MODAL' }), []);
+
+    const updateQuota = useCallback((quota: import('../types').QuotaSummary) => {
+        dispatch({ type: 'UPDATE_QUOTA', payload: quota });
+    }, []);
 
     // Operation tracking ref — keeps current opId accessible in async closures
     const activeOpRef = React.useRef<number>(0);
@@ -842,21 +848,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'ADD_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
 
         try {
-            dispatch({ type: 'SET_CHAT_STATUS', payload: 'Identifying specialists…' });
-            const specialties = await apiManager.identifyBoardParticipants(selectedPatient, aiSettings);
+            // Get board settings from state
+            const { boardSettings } = state;
+            const maxSpecialties = boardSettings.maxSpecialties;
 
-            for (let i = 0; i < specialties.length; i++) {
+            dispatch({ type: 'SET_CHAT_STATUS', payload: 'Identifying specialists…' });
+            const specialties = await (await import('../services/agents/multiAgentSimulation'))
+                .identifyBoardParticipants(selectedPatient, new (await import('@google/genai')).GoogleGenAI({ apiKey: aiSettings.apiKey }), false, maxSpecialties);
+
+            // Check cache for existing opinions
+            const cachedReports = boardCacheService.getCachedOpinions(selectedPatient, specialties);
+            const uncachedSpecialties = specialties.filter(s => !cachedReports.has(s));
+
+            // Start with cached reports
+            let reports = Array.from(cachedReports.values());
+            for (const report of reports) {
+                currentMessage = { ...currentMessage, specialistReports: [...currentMessage.specialistReports, report] };
+                dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
+            }
+
+            // Fetch only uncached specialties
+            for (let i = 0; i < uncachedSpecialties.length; i++) {
                 if (isOpCancelled(opId)) {
                     currentMessage = { ...currentMessage, isLive: false, title: `${currentMessage.title} (Stopped)` };
                     dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
                     return;
                 }
-                dispatch({ type: 'SET_CHAT_STATUS', payload: `Consulting ${specialties[i]}… (${i + 1}/${specialties.length})` });
-                const report = await apiManager.generateSpecialistReport(selectedPatient, specialties[i], aiSettings);
+                const specialty = uncachedSpecialties[i];
+                dispatch({ type: 'SET_CHAT_STATUS', payload: `Consulting ${specialty}… (${i + 1 + reports.length}/${specialties.length})` });
+                const report = await apiManager.generateSpecialistReport(selectedPatient, specialty, aiSettings);
+
+                // Cache the result
+                if (boardSettings.enableCache) {
+                    boardCacheService.setCachedOpinion(selectedPatient, specialty, report);
+                }
+
                 currentMessage = { ...currentMessage, specialistReports: [...currentMessage.specialistReports, report] };
                 dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await new Promise(resolve => setTimeout(resolve, 400)); // Reduced from 800ms since throttle handles rate limiting
             }
+
+            // Sort reports by original specialties order
+            const sortedReports = specialties
+                .map(s => currentMessage.specialistReports.find(r => r.specialty === s))
+                .filter((r): r is SpecialistReport => r !== undefined);
 
             if (isOpCancelled(opId)) {
                 currentMessage = { ...currentMessage, isLive: false, title: `${currentMessage.title} (Stopped)` };
@@ -865,8 +900,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
 
             dispatch({ type: 'SET_CHAT_STATUS', payload: 'Synthesizing consensus…' });
-            const consensus = await apiManager.consolidateBoardReports(selectedPatient, currentMessage.specialistReports, aiSettings);
-            currentMessage = { ...currentMessage, isLive: false, consolidatedReport: consensus };
+            const consensus = await apiManager.consolidateBoardReports(selectedPatient, sortedReports, aiSettings);
+            currentMessage = { ...currentMessage, specialistReports: sortedReports, isLive: false, consolidatedReport: consensus };
             dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentMessage } });
 
         } catch (error: any) {
@@ -879,7 +914,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dispatch({ type: 'SET_CHAT_LOADING', payload: false });
             finishOperation(opId);
         }
-    }, [selectedPatient, showToast, startOperation, isOpCancelled, finishOperation]);
+    }, [selectedPatient, showToast, startOperation, isOpCancelled, finishOperation, state, aiSettings]);
 
     const handleRunClinicalDebate = useCallback(async () => {
         if (!selectedPatient) return;
@@ -906,7 +941,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         try {
             dispatch({ type: 'SET_CHAT_STATUS', payload: 'Initializing debate…' });
-            const initData = await apiManager.initializeClinicalDebate(selectedPatient, aiSettings);
+            const { boardSettings } = state;
+            const initData = await apiManager.initializeClinicalDebate(selectedPatient, aiSettings, 6); // Limit to 6 participants for debate
             let currentDebateState: ClinicalDebateMessage = {
                 ...placeholderDebate,
                 title: `Grand Rounds: ${initData.topic}`,
@@ -917,7 +953,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dispatch({ type: 'UPDATE_MESSAGE', payload: { patientId: selectedPatient.id, message: currentDebateState } });
 
             let turns = 0;
-            const MAX_TURNS = 12;
+            const MAX_TURNS = boardSettings.maxDebateTurns; // Use configurable max turns (default 6)
             let consensusReached = false;
 
             while (!consensusReached && turns < MAX_TURNS) {
@@ -973,6 +1009,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             extractedData,
             extractionProgress,
             cancelActiveOperation,
+            updateQuota,
             handleRestoreReport,
             handlePermanentDeleteReport,
         }

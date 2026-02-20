@@ -954,5 +954,30 @@ export interface AiPersonalizationSettings {
 export interface ToastNotification {
     id: number;
     message: string;
-    type: 'error' | 'success' | 'info';
+    type: 'error' | 'success' | 'info' | 'warning';
+}
+
+// --- API QUOTA TYPES ---
+
+export interface QuotaSummary {
+    callsUsed: number;
+    callsLimit: number;
+    callsRemaining: number;
+    tokensUsed: number;
+    tokensLimit: number;
+    percentage: number;
+    resetsAt: string; // ISO timestamp
+    onPaceToExceed: boolean;
+}
+
+// --- BOARD SETTINGS TYPES ---
+
+export type BoardMode = 'quick' | 'standard' | 'comprehensive';
+
+export interface BoardSettings {
+    mode: BoardMode;
+    maxSpecialties: number;
+    maxDebateTurns: number;
+    enableCache: boolean;
+    showSettingsOnStart: boolean; // Show modal every time or just first
 }

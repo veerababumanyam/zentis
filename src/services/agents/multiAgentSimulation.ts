@@ -29,28 +29,29 @@ const getPatientContext = (patient: Patient) => {
 import { ALL_SPECIALTIES } from '../../config/medicalSpecialties';
 
 // --- 1. Identify Participants ---
-export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenAI, forceGrandRounds: boolean = false): Promise<string[]> => {
+export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenAI, forceGrandRounds: boolean = false, maxSpecialties: number = 16): Promise<string[]> => {
     if (forceGrandRounds) {
-        return ALL_SPECIALTIES;
+        return ALL_SPECIALTIES.slice(0, maxSpecialties);
     }
 
     const context = getPatientContext(patient);
 
     const prompt = `Review the patient data and assemble a high-fidelity Medical Board.
-    Identify **ALL** relevant medical specialties required for a comprehensive review.
-    
+    Identify the most relevant medical specialties required for a comprehensive review.
+
     **Available Specialized Agents:** ${ALL_SPECIALTIES.join(', ')}, Pharmacist, Nutritionist.
     (You may also request others if strictly necessary, e.g., 'Surgery').
-    
+
     **Rules:**
     1. Always include 'Cardiology' as the lead.
     2. Select specialists based on specific comorbidities (e.g., CKD -> Nephrology, Diabetes -> Endocrinology).
-    3. **DO NOT** limit the number of specialists. Include every voice that adds value to this case.
-    4. If the case is complex/undefined, include 'Internal Medicine' or 'DeepReasoning'.
-    
+    3. Select ONLY the most essential specialists (maximum ${maxSpecialties}). Focus on quality over quantity.
+    4. Prioritize specialists whose expertise is directly relevant to this patient's condition.
+    5. If the case is complex/undefined, include 'Internal Medicine' or 'DeepReasoning'.
+
     **Patient Context:** ${context}
-    
-    Return ONLY a JSON object with a single property 'specialties' which is an array of strings.`;
+
+    Return ONLY a JSON object with a single property 'specialties' which is an array of strings (maximum ${maxSpecialties} items).`;
 
     const response = await ai.models.generateContent({
         model: AI_MODELS.FLASH,
@@ -68,7 +69,8 @@ export const identifyBoardParticipants = async (patient: Patient, ai: GoogleGenA
     });
 
     const result = JSON.parse(response.text.trim());
-    return result.specialties;
+    // Ensure we don't exceed max
+    return result.specialties.slice(0, maxSpecialties);
 };
 
 // --- 2. Generate Individual Specialist Report ---
@@ -258,24 +260,114 @@ export const runMultiSpecialistReviewAgent = async (patient: Patient, ai: Google
     };
 };
 
-// --- INTERACTIVE CLINICAL DEBATE AGENTS ---
+// --- NEW: Rate-Limit-Aware Sequential Functions ---
 
 /**
- * Step 1: Initialize the debate - identify topic and participants.
+ * Configuration for board review execution
  */
-export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): Promise<{ topic: string, participants: DebateParticipant[] }> => {
+export interface BoardReviewConfig {
+    maxSpecialties?: number;
+    forceGrandRounds?: boolean;
+    enableCache?: boolean;
+    progressCallback?: (current: number, total: number, specialist: string) => void;
+}
+
+/**
+ * Configuration for debate execution
+ */
+export interface DebateConfig {
+    maxParticipants?: number;
+    maxTurns?: number;
+    progressCallback?: (turn: number, total: number, speaker: string) => void;
+}
+
+/**
+ * Sleep utility for sequential execution
+ */
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Run multi-specialist review with sequential execution to avoid rate limiting
+ * @param patient Patient data
+ * @param ai GoogleGenAI instance
+ * @param config Configuration options
+ */
+export const runMultiSpecialistReviewSequential = async (
+    patient: Patient,
+    ai: GoogleGenAI,
+    config: BoardReviewConfig = {}
+): Promise<MultiSpecialistReviewMessage> => {
+    const {
+        maxSpecialties = 8,
+        forceGrandRounds = false,
+        progressCallback
+    } = config;
+
+    // Identify participants
+    let specialties = await identifyBoardParticipants(patient, ai, forceGrandRounds);
+
+    // Apply cap if not grand rounds
+    if (!forceGrandRounds && specialties.length > maxSpecialties) {
+        console.log(`[Board] Limiting specialists from ${specialties.length} to ${maxSpecialties}`);
+        // Always keep Cardiology first if present, then take next most relevant
+        const cardiologyIndex = specialties.indexOf('Cardiology');
+        if (cardiologyIndex > 0) {
+            specialties = ['Cardiology', ...specialties.filter((_, i) => i !== cardiologyIndex).slice(0, maxSpecialties - 1)];
+        } else {
+            specialties = specialties.slice(0, maxSpecialties);
+        }
+    }
+
+    // Generate specialist opinions sequentially (not parallel)
+    const reports: SpecialistReport[] = [];
+    for (let i = 0; i < specialties.length; i++) {
+        const specialty = specialties[i];
+        if (progressCallback) {
+            progressCallback(i + 1, specialties.length, specialty);
+        }
+        const report = await generateSpecialistOpinion(patient, specialty, ai);
+        reports.push(report);
+
+        // Add small delay between calls to stay within rate limits
+        if (i < specialties.length - 1) {
+            await sleep(400); // Slightly above MIN_REQUEST_GAP_MS
+        }
+    }
+
+    // Generate consensus
+    const consensus = await generateBoardConsensus(patient, reports, ai);
+
+    return {
+        id: Date.now(),
+        sender: 'ai',
+        type: 'multi_specialist_review',
+        title: `Medical Board Review: ${patient.name}`,
+        specialistReports: reports,
+        consolidatedReport: consensus
+    };
+};
+
+/**
+ * Initialize debate with participant limit
+ */
+export const initializeDebateAgentLimited = async (
+    patient: Patient,
+    ai: GoogleGenAI,
+    maxParticipants: number = 8
+): Promise<{ topic: string, participants: DebateParticipant[] }> => {
     const context = getPatientContext(patient);
 
-    const prompt = `You are a Medical Simulation Director organizing a Grand Rounds debate. 
+    const prompt = `You are a Medical Simulation Director organizing a Grand Rounds debate.
     **Patient Context:** ${context}
-    
+
     **Task:**
     1. Identify the most controversial, complex, or high-stakes clinical dilemma for this patient.
-    2. Assemble a **comprehensive multidisciplinary board** of specialists to debate this.
+    2. Assemble a multidisciplinary board of specialists to debate this.
        - Choose from the following roles if relevant: ${ALL_SPECIALTIES.join(', ')}.
-       - **DO NOT limit** the number of specialists to just 3. Include EVERY relevant voice.
+       - Select exactly ${maxParticipants} participants (including 1 Moderator).
        - Always include a "Moderator" (Chief of Medicine) to guide the discussion.
-    
+       - Prioritize specialties most relevant to the clinical dilemma.
+
     **Output:** JSON with 'topic' and a list of 'participants' (role, name, specialty).`;
 
     const responseSchema = {
@@ -304,7 +396,71 @@ export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI): 
         config: { responseMimeType: 'application/json', responseSchema }
     });
 
-    return JSON.parse(response.text.trim());
+    const result = JSON.parse(response.text.trim());
+
+    // Ensure we don't exceed max participants
+    if (result.participants.length > maxParticipants) {
+        result.participants = result.participants.slice(0, maxParticipants);
+    }
+
+    return result;
+};
+
+// --- INTERACTIVE CLINICAL DEBATE AGENTS ---
+
+/**
+ * Step 1: Initialize the debate - identify topic and participants.
+ */
+export const initializeDebateAgent = async (patient: Patient, ai: GoogleGenAI, maxParticipants: number = 8): Promise<{ topic: string, participants: DebateParticipant[] }> => {
+    const context = getPatientContext(patient);
+
+    const prompt = `You are a Medical Simulation Director organizing a Grand Rounds debate.
+    **Patient Context:** ${context}
+
+    **Task:**
+    1. Identify the most controversial, complex, or high-stakes clinical dilemma for this patient.
+    2. Assemble a multidisciplinary board of specialists to debate this.
+       - Choose from the following roles if relevant: ${ALL_SPECIALTIES.join(', ')}.
+       - Select exactly ${maxParticipants} participants (including 1 Moderator) for focused discussion.
+       - Always include a "Moderator" (Chief of Medicine) to guide the discussion.
+       - Prioritize specialties most relevant to the clinical dilemma.
+
+    **Output:** JSON with 'topic' and a list of 'participants' (role, name, specialty).`;
+
+    const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+            topic: { type: Type.STRING },
+            participants: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        role: { type: Type.STRING, description: "Specialty (e.g., Nephrologist)" },
+                        name: { type: Type.STRING, description: "Name (e.g., Dr. Smith)" },
+                        specialty: { type: Type.STRING }
+                    },
+                    required: ["role", "name", "specialty"]
+                }
+            }
+        },
+        required: ["topic", "participants"]
+    };
+
+    const response = await ai.models.generateContent({
+        model: AI_MODELS.PRO,
+        contents: prompt,
+        config: { responseMimeType: 'application/json', responseSchema }
+    });
+
+    const result = JSON.parse(response.text.trim());
+
+    // Ensure we don't exceed max participants
+    if (result.participants.length > maxParticipants) {
+        result.participants = result.participants.slice(0, maxParticipants);
+    }
+
+    return result;
 };
 
 /**

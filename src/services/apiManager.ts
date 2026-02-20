@@ -6,6 +6,7 @@ import * as utilityAgents from './agents/utilityAgents';
 import * as multiAgentSimulation from './agents/multiAgentSimulation';
 import { GoogleGenAI } from "@google/genai";
 import { MissingApiKeyError } from '../errors';
+import * as quotaService from './quotaService';
 
 // Helper to get an AI instance — requires a user-provided key
 const getAiClient = (apiKey?: string) => {
@@ -65,6 +66,16 @@ async function throttle(): Promise<void> {
  * @throws An error if the call is blocked or if the underlying API call fails after all retries.
  */
 async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
+  // Check quota before attempting the call
+  const quotaCheck = quotaService.checkQuotaBeforeCall();
+  if (!quotaCheck.allowed) {
+    console.error('[ApiManager] Quota exceeded:', quotaCheck.reason);
+    throw new Error(quotaCheck.reason);
+  }
+  if (quotaCheck.warning) {
+    console.warn('[ApiManager] Quota warning:', quotaCheck.warning);
+  }
+
   // If we're in a global cooldown period, wait it out (but don't throw immediately)
   if (isRateLimited && Date.now() < retryAfterTimestamp) {
     const waitTime = retryAfterTimestamp - Date.now();
@@ -80,7 +91,10 @@ async function handleRateLimiting<T>(apiCall: () => Promise<T>): Promise<T> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       await throttle();
-      return await apiCall();
+      const result = await apiCall();
+      // Record successful API call
+      quotaService.recordApiCall();
+      return result;
     } catch (error: any) {
       lastError = error;
       const errorString = String(error.message || error);
@@ -191,9 +205,9 @@ export const runMultiSpecialistReview = async (patient: Patient, aiSettings: AiP
   return handleRateLimiting(() => multiAgentSimulation.runMultiSpecialistReviewAgent(patient, ai));
 };
 
-export const initializeClinicalDebate = async (patient: Patient, aiSettings: AiPersonalizationSettings): Promise<{ topic: string, participants: DebateParticipant[] }> => {
+export const initializeClinicalDebate = async (patient: Patient, aiSettings: AiPersonalizationSettings, maxParticipants?: number): Promise<{ topic: string, participants: DebateParticipant[] }> => {
   const ai = getAiClient(aiSettings.apiKey);
-  return handleRateLimiting(() => multiAgentSimulation.initializeDebateAgent(patient, ai));
+  return handleRateLimiting(() => multiAgentSimulation.initializeDebateAgent(patient, ai, maxParticipants));
 };
 
 export const runNextDebateTurn = async (patient: Patient, transcript: DebateTurn[], participants: DebateParticipant[], topic: string, aiSettings: AiPersonalizationSettings): Promise<{ nextTurn: DebateTurn, consensusReached: boolean, consensusStatement: string | null }> => {
@@ -215,3 +229,8 @@ export const runDeepReasoning = async (patient: Patient, query: string, aiSettin
   const ai = getAiClient(aiSettings.apiKey);
   return handleRateLimiting(() => utilityAgents.runDeepThinkingAgent(patient, query, ai));
 };
+
+// Export quota-related functions for use in components
+export const getQuotaSummary = quotaService.getQuotaSummary;
+export const checkQuotaBeforeCall = quotaService.checkQuotaBeforeCall;
+export const clearQuotaData = quotaService.clearQuotaData;

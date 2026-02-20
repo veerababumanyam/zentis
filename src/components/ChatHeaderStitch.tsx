@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { RadioIcon } from './icons/RadioIcon';
 import { UsersIcon } from './icons/UsersIcon';
@@ -9,6 +9,7 @@ import { ClipboardCheckIcon } from './icons/ClipboardCheckIcon';
 import { AlertTriangleIcon } from './icons/AlertTriangleIcon';
 import { CalculatorIcon } from './icons/CalculatorIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
+import { QuotaIndicator } from './QuotaIndicator';
 
 interface ChatHeaderStitchProps {
     onOpenSettings?: () => void;
@@ -26,6 +27,20 @@ export const ChatHeaderStitch: React.FC<ChatHeaderStitchProps> = ({ onOpenSettin
         cancelActiveOperation
     } = actions;
 
+    // Update quota in state periodically
+    useEffect(() => {
+        const updateQuota = async () => {
+            const { getQuotaSummary } = await import('../services/apiManager');
+            const quota = getQuotaSummary();
+            if (actions.updateQuota) {
+                actions.updateQuota(quota);
+            }
+        };
+        updateQuota();
+        const interval = setInterval(updateQuota, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, [actions]);
+
     return (
         <header className="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-stitch-accent-dark/70 border-b border-gray-200/50 dark:border-white/10 flex flex-col shadow-sm">
             <div className="flex items-center justify-between px-4 py-3 w-full">
@@ -42,9 +57,12 @@ export const ChatHeaderStitch: React.FC<ChatHeaderStitchProps> = ({ onOpenSettin
                         <h1 className="text-lg font-bold leading-none tracking-tight text-gray-900 dark:text-white font-display">
                             Zentis <span className="text-blue-500">AI</span>
                         </h1>
-                        <span className="text-[10px] uppercase tracking-widest text-blue-500 font-bold block mt-0.5">
-                            {isChatLoading ? 'Processing...' : 'Online Assistant'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-widest text-blue-500 font-bold block mt-0.5">
+                                {isChatLoading ? 'Processing...' : 'Online Assistant'}
+                            </span>
+                            <QuotaIndicator className="scale-75 origin-left" />
+                        </div>
                     </div>
                 </div>
 

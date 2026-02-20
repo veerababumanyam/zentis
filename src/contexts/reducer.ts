@@ -1,5 +1,5 @@
 
-import type { Patient, Message, Feedback, AiPersonalizationSettings, DailyHuddle, Report, ToastNotification, ClinicalNote } from '../types';
+import type { Patient, Message, Feedback, AiPersonalizationSettings, DailyHuddle, Report, ToastNotification, ClinicalNote, QuotaSummary, BoardSettings } from '../types';
 
 export type OperationKind = 'chat' | 'board' | 'critics';
 
@@ -49,6 +49,12 @@ export interface AppState {
     isLiveModeOpen: boolean;
     isSettingsOpen: boolean; // NEW
     isLandingPage: boolean; // NEW
+
+    // NEW: API quota tracking
+    apiQuota: QuotaSummary | null;
+
+    // NEW: Board settings for quick/standard/comprehensive modes
+    boardSettings: BoardSettings;
 }
 
 export type Action =
@@ -90,7 +96,10 @@ export type Action =
     | { type: 'SET_ACTIVE_OPERATION'; payload: ActiveOperation | null }
     | { type: 'REQUEST_CANCEL_OPERATION' }
     | { type: 'SET_CHAT_STATUS'; payload: string | null }
-    | { type: 'UPDATE_REPORT_EXTRACTED_TEXT'; payload: { patientId: string; reportId: string; rawTextForAnalysis: string } };
+    | { type: 'UPDATE_REPORT_EXTRACTED_TEXT'; payload: { patientId: string; reportId: string; rawTextForAnalysis: string } }
+    // NEW: Quota and Board Settings actions
+    | { type: 'UPDATE_QUOTA'; payload: QuotaSummary }
+    | { type: 'UPDATE_BOARD_SETTINGS'; payload: Partial<BoardSettings> };
 
 export const initialState: AppState = {
     isAppLoading: true,
@@ -124,6 +133,14 @@ export const initialState: AppState = {
     isLiveModeOpen: false,
     isSettingsOpen: false, // Default closed
     isLandingPage: true, // Default to true
+    apiQuota: null,
+    boardSettings: {
+        mode: 'standard',
+        maxSpecialties: 8,
+        maxDebateTurns: 6,
+        enableCache: true,
+        showSettingsOnStart: true
+    }
 };
 
 export const appReducer = (state: AppState, action: Action): AppState => {
@@ -296,6 +313,10 @@ export const appReducer = (state: AppState, action: Action): AppState => {
                 })
             };
         }
+        case 'UPDATE_QUOTA':
+            return { ...state, apiQuota: action.payload };
+        case 'UPDATE_BOARD_SETTINGS':
+            return { ...state, boardSettings: { ...state.boardSettings, ...action.payload } };
         default:
             return state;
     }
